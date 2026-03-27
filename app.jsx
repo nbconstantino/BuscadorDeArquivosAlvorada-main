@@ -13,7 +13,8 @@ import {
   Film,
   Lock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO ---
@@ -25,26 +26,6 @@ const PUBLIC_CDN = 'https://lojasalvorada.b-cdn.net';
 const encodeURIComponentPath = (path) => {
   if (!path) return '';
   return path.split('/').map(encodeURIComponent).join('/');
-};
-
-const downloadFile = async (path, user) => {
-  try {
-    const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path)}`, {
-      headers: { 'Authorization': `Bearer ${user.token}` }
-    });
-    if (!res.ok) throw new Error('Falha no download');
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = path.split('/').pop();
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (e) { 
-    alert("Falha ao realizar o download. Verifique a sua ligação."); 
-  }
 };
 
 // --- COMPONENTES AUXILIARES ---
@@ -75,34 +56,9 @@ const Pagination = ({ current, total, onChange }) => (
   </div>
 );
 
-const FileCard = ({ file, user }) => {
-  const ext = file.ObjectName.split('.').pop().toLowerCase();
-  const isVideo = ['mp4', 'mov', 'webm'].includes(ext);
-  const mediaUrl = `${PUBLIC_CDN}/${encodeURIComponentPath(file.fullPath)}`;
-
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800 group hover:shadow-2xl transition-all duration-500 relative">
-      <div className="aspect-square bg-gray-50 dark:bg-gray-950 flex items-center justify-center relative overflow-hidden">
-        {isVideo ? (
-          <Film className="text-gray-300 group-hover:text-red-600 transition-colors" size={40} />
-        ) : (
-          <img src={mediaUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-125" loading="lazy" alt={file.ObjectName} />
-        )}
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 backdrop-blur-sm">
-           <button onClick={() => window.open(mediaUrl, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-all"><ImageIcon size={20}/></button>
-           <button onClick={() => downloadFile(file.fullPath, user)} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-all"><Download size={20}/></button>
-        </div>
-      </div>
-      <div className="p-3">
-        <p className="text-[10px] font-bold truncate dark:text-gray-300 uppercase tracking-tighter" title={file.ObjectName}>{file.ObjectName}</p>
-      </div>
-    </div>
-  );
-};
-
 // --- ABAS ---
 
-const SearchTab = ({ user }) => {
+const SearchTab = ({ user, showMessage }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -118,13 +74,15 @@ const SearchTab = ({ user }) => {
     try {
       for (const path of paths) {
         const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(path)}`, {
-          headers: { 'Authorization': `Bearer ${user.token}` }
+          headers: { 'Authorization': `Bearer ${user?.token}` }
         });
+        
+        if (!res.ok) continue;
+
         const data = await res.json();
         
-        // Verificação de segurança: garantir que data é um array
         if (Array.isArray(data)) {
-          const matches = data.filter(f => f.ObjectName.toLowerCase().includes(query.toLowerCase()));
+          const matches = data.filter(f => f.ObjectName?.toLowerCase().includes(query.toLowerCase()));
           allMatches = [...allMatches, ...matches.map(f => ({ ...f, fullPath: `${path}/${f.ObjectName}` }))];
         }
       }
@@ -132,13 +90,33 @@ const SearchTab = ({ user }) => {
       setPage(1);
     } catch (e) {
       console.error("Erro na busca:", e);
-      alert("Ocorreu um erro ao realizar a busca. Tente novamente.");
+      showMessage("Erro", "Ocorreu um erro ao realizar a busca.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const paginatedResults = results.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  const downloadFileInternal = async (path) => {
+    try {
+      const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path)}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      if (!res.ok) throw new Error('Falha no download');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = path.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) { 
+      showMessage("Erro", "Falha ao realizar o download.", "error");
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -159,9 +137,30 @@ const SearchTab = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {paginatedResults.map((file, idx) => (
-          <FileCard key={idx} file={file} user={user} />
-        ))}
+        {paginatedResults.map((file, idx) => {
+          const ext = file.ObjectName?.split('.').pop().toLowerCase();
+          const isVideo = ['mp4', 'mov', 'webm'].includes(ext);
+          const mediaUrl = `${PUBLIC_CDN}/${encodeURIComponentPath(file.fullPath)}`;
+
+          return (
+            <div key={idx} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800 group hover:shadow-2xl transition-all duration-500 relative">
+              <div className="aspect-square bg-gray-50 dark:bg-gray-950 flex items-center justify-center relative overflow-hidden">
+                {isVideo ? (
+                  <Film className="text-gray-300 group-hover:text-red-600 transition-colors" size={40} />
+                ) : (
+                  <img src={mediaUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-125" loading="lazy" alt={file.ObjectName} />
+                )}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 backdrop-blur-sm">
+                   <button onClick={() => window.open(mediaUrl, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-all"><ImageIcon size={20}/></button>
+                   <button onClick={() => downloadFileInternal(file.fullPath)} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-all"><Download size={20}/></button>
+                </div>
+              </div>
+              <div className="p-3">
+                <p className="text-[10px] font-bold truncate dark:text-gray-300 uppercase tracking-tighter" title={file.ObjectName}>{file.ObjectName}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {results.length > itemsPerPage && (
@@ -177,7 +176,7 @@ const SearchTab = ({ user }) => {
   );
 };
 
-const CarnesTab = ({ user }) => {
+const CarnesTab = ({ user, showMessage }) => {
   const [currentPath, setCurrentPath] = useState('Carnes');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -186,24 +185,45 @@ const CarnesTab = ({ user }) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(path)}`, {
-        headers: { 'Authorization': `Bearer ${user.token}` }
+        headers: { 'Authorization': `Bearer ${user?.token}` }
       });
+      if (!res.ok) throw new Error('Erro na resposta');
       const data = await res.json();
-      
-      // Verificação de segurança: garantir que data é um array
       setItems(Array.isArray(data) ? data : []);
       setCurrentPath(path);
     } catch (e) {
       console.error("Erro ao carregar pasta:", e);
-      alert("Erro ao carregar a pasta.");
+      showMessage("Erro", "Erro ao carregar a pasta de Carnês.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => { 
-    if (user) fetchFolder('Carnes'); 
+    if (user && user.role === 'admin') {
+      fetchFolder('Carnes');
+    }
   }, [user]);
+
+  const downloadFileInternal = async (path) => {
+    try {
+      const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path)}`, {
+        headers: { 'Authorization': `Bearer ${user?.token}` }
+      });
+      if (!res.ok) throw new Error('Falha no download');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = path.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) { 
+      showMessage("Erro", "Falha ao realizar o download.", "error");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -245,7 +265,7 @@ const CarnesTab = ({ user }) => {
                 </div>
                 {!item.IsDirectory && (
                   <button 
-                    onClick={(e) => { e.stopPropagation(); downloadFile(`${currentPath}/${item.ObjectName}`, user); }} 
+                    onClick={(e) => { e.stopPropagation(); downloadFileInternal(`${currentPath}/${item.ObjectName}`); }} 
                     className="p-3 bg-gray-100 dark:bg-gray-800 hover:bg-red-600 hover:text-white rounded-xl transition"
                   >
                     <Download size={18} />
@@ -260,7 +280,7 @@ const CarnesTab = ({ user }) => {
   );
 };
 
-const UploadTab = ({ user }) => {
+const UploadTab = ({ user, showMessage }) => {
   const [file, setFile] = useState(null);
   const [folder, setFolder] = useState('Fprodutos');
   const [status, setStatus] = useState({ type: '', msg: '' });
@@ -279,7 +299,7 @@ const UploadTab = ({ user }) => {
     try {
       const res = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${user.token}` },
+        headers: { 'Authorization': `Bearer ${user?.token}` },
         body: formData
       });
       if (res.ok) {
@@ -366,11 +386,22 @@ const App = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Estado para Mensagens Customizadas (Substitui Alert)
+  const [message, setMessage] = useState(null);
+
+  const showMessage = (title, text, type = 'info') => {
+    setMessage({ title, text, type });
+    setTimeout(() => setMessage(null), 5000);
+  };
+
   useEffect(() => {
     const session = localStorage.getItem('alvorada_session');
     if (session) {
       try {
-        setUser(JSON.parse(session));
+        const parsed = JSON.parse(session);
+        if (parsed && parsed.token) {
+          setUser(parsed);
+        }
       } catch (e) {
         localStorage.removeItem('alvorada_session');
       }
@@ -400,16 +431,18 @@ const App = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: loginForm.username, password: loginForm.password })
       });
+      
       const data = await res.json();
-      if (res.ok) {
+      
+      if (res.ok && data.token) {
         setUser(data);
         localStorage.setItem('alvorada_session', JSON.stringify(data));
       } else {
-        setError(data.error || 'Erro ao autenticar.');
+        setError(data.error || 'Erro ao autenticar. Verifique os dados.');
         generateCaptcha();
       }
     } catch (err) {
-      setError('Erro ao conectar com o servidor.');
+      setError('Erro ao conectar com o servidor. Tente novamente mais tarde.');
       generateCaptcha();
     } finally {
       setLoading(false);
@@ -419,6 +452,7 @@ const App = () => {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('alvorada_session');
+    setActiveTab('search');
   };
 
   if (!user) {
@@ -487,13 +521,13 @@ const App = () => {
                
                <div className="hidden lg:flex items-center gap-2">
                  <NavButton active={activeTab === 'search'} onClick={() => setActiveTab('search')} icon={<Search size={18}/>} label="Produtos" />
-                 {user.role === 'admin' && <NavButton active={activeTab === 'carnes'} onClick={() => setActiveTab('carnes')} icon={<FileText size={18}/>} label="Carnês" />}
-                 {['admin', 'editor'].includes(user.role) && <NavButton active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} icon={<Upload size={18}/>} label="Upload" />}
+                 {user?.role === 'admin' && <NavButton active={activeTab === 'carnes'} onClick={() => setActiveTab('carnes')} icon={<FileText size={18}/>} label="Carnês" />}
+                 {(user?.role === 'admin' || user?.role === 'editor') && <NavButton active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} icon={<Upload size={18}/>} label="Upload" />}
                </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-xs font-black uppercase text-gray-400 tracking-widest">{user.name}</span>
+              <span className="hidden sm:inline text-xs font-black uppercase text-gray-400 tracking-widest">{user?.name}</span>
               <button onClick={() => setDarkMode(!darkMode)} className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition focus:outline-none">
                 {darkMode ? <Sun size={20} className="text-yellow-400"/> : <Moon size={20} className="text-indigo-600"/>}
               </button>
@@ -506,15 +540,28 @@ const App = () => {
           {/* Mobile Navigation */}
           <div className="lg:hidden flex border-t dark:border-gray-800 bg-white dark:bg-gray-900">
              <MobileTab active={activeTab === 'search'} onClick={() => setActiveTab('search')} label="Produtos" />
-             {user.role === 'admin' && <MobileTab active={activeTab === 'carnes'} onClick={() => setActiveTab('carnes')} label="Carnês" />}
-             {['admin', 'editor'].includes(user.role) && <MobileTab active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} label="Upload" />}
+             {user?.role === 'admin' && <MobileTab active={activeTab === 'carnes'} onClick={() => setActiveTab('carnes')} label="Carnês" />}
+             {(user?.role === 'admin' || user?.role === 'editor') && <MobileTab active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} label="Upload" />}
           </div>
         </nav>
 
+        {/* Mensagem Toast */}
+        {message && (
+          <div className="fixed top-24 right-6 z-[60] animate-in slide-in-from-right duration-300">
+            <div className={`p-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${message.type === 'error' ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-950/50 dark:border-red-900' : 'bg-green-50 text-green-700 border-green-100 dark:bg-green-950/50 dark:border-green-900'}`}>
+              {message.type === 'error' ? <XCircle size={20}/> : <CheckCircle size={20}/>}
+              <div>
+                <p className="font-bold text-sm">{message.title}</p>
+                <p className="text-xs">{message.text}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <main className="flex-grow max-w-7xl mx-auto p-6 sm:p-10 w-full">
-           {activeTab === 'search' && <SearchTab user={user} />}
-           {activeTab === 'carnes' && <CarnesTab user={user} />}
-           {activeTab === 'upload' && <UploadTab user={user} />}
+           {activeTab === 'search' && <SearchTab user={user} showMessage={showMessage} />}
+           {activeTab === 'carnes' && <CarnesTab user={user} showMessage={showMessage} />}
+           {activeTab === 'upload' && <UploadTab user={user} showMessage={showMessage} />}
         </main>
 
         <footer className="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
