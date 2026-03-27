@@ -5,14 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Painel Interno - Lojas Alvorada</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Configuração vital para o Tailwind entender o modo escuro manual via classe
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            alvorada: '#0e75d7',
+          }
+        }
+      }
+    }
+  </script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-    body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.3s; margin: 0; }
-    .dark { background: #0b0e14 !important; color: white !important; }
-    .btn-blue { background-color: #0e75d7; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.3s, color 0.3s; margin: 0; }
+    /* Cores de fundo base para o modo escuro para evitar flashes brancos */
+    .dark { background-color: #0b0e14; }
     .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0e75d7; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .custom-scroll::-webkit-scrollbar { width: 6px; }
@@ -20,29 +33,29 @@
     .fade-in { animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .no-select { user-select: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    // ISOLAMENTO DE ESCOPO para evitar erro 'Infinity'
-    (function() {
+    {
       const { useState, useEffect, useMemo, Fragment } = React;
 
-      // ÍCONES SVG INLINE - Garantia de que aparecem
+      // --- ÍCONES SVG INTERNOS (Garantia de visibilidade total sem bibliotecas externas) ---
       const Icons = {
         Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
         Upload: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>,
         FileText: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>,
         LogOut: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>,
         Moon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>,
-        Sun: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line></svg>,
+        Sun: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>,
         Download: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>,
         Folder: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>,
         ChevronRight: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
         Grid: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
-        List: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line></svg>,
+        List: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>,
         Eye: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
         EyeOff: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>,
         Info: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
@@ -79,14 +92,19 @@
           if (session) {
             try { setUser(JSON.parse(session)); } catch(e) { localStorage.removeItem('alvorada_session'); }
           }
+        }, []);
+
+        useEffect(() => {
+          // Aplica a classe ao HTML para o Tailwind e salva a preferência
           document.documentElement.classList.toggle('dark', darkMode);
+          localStorage.setItem('alvorada_theme', darkMode ? 'dark' : 'light');
         }, [darkMode]);
 
-        if (!user) return <LoginScreen onLogin={(u) => setUser(u)} darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />;
+        if (!user) return <LoginScreen onLogin={(u) => setUser(u)} darkMode={darkMode} />;
 
         return (
-          <div className="min-h-screen flex flex-col fade-in bg-gray-50 dark:bg-[#0b0e14]">
-            <header className="bg-white dark:bg-[#161b22] border-b dark:border-gray-800 h-20 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-50 shadow-sm transition-colors">
+          <div className="min-h-screen flex flex-col transition-colors duration-300 bg-gray-50 dark:bg-[#0b0e14] text-gray-900 dark:text-gray-100">
+            <header className="bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-gray-800 h-20 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-50 shadow-sm transition-colors">
               <div className="flex items-center gap-4 lg:gap-10">
                 <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-8 lg:h-10 object-contain" />
                 <nav className="hidden lg:flex gap-2">
@@ -96,17 +114,17 @@
                 </nav>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setDarkMode(!darkMode)} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl transition hover:scale-105 active:scale-95 text-[#0e75d7]">
+                <button onClick={() => setDarkMode(!darkMode)} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl transition hover:scale-110 active:scale-95 text-[#0e75d7]">
                   {darkMode ? <Icons.Sun /> : <Icons.Moon />}
                 </button>
-                <button onClick={() => { setUser(null); localStorage.removeItem('alvorada_session'); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-950/30 rounded-2xl transition hover:scale-105 active:scale-95">
+                <button onClick={() => { setUser(null); localStorage.removeItem('alvorada_session'); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-950/30 rounded-2xl transition hover:scale-110 active:scale-95">
                   <Icons.LogOut />
                 </button>
               </div>
             </header>
 
             {/* Menu Mobile */}
-            <nav className="lg:hidden flex border-b dark:border-gray-800 bg-white dark:bg-[#161b22] sticky top-20 z-40 overflow-x-auto shadow-sm no-select no-scrollbar">
+            <nav className="lg:hidden flex border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#161b22] sticky top-20 z-40 overflow-x-auto shadow-sm no-select no-scrollbar transition-colors">
               <button onClick={() => setTab('search')} className={`flex-1 py-4 flex flex-col items-center gap-1 text-[10px] font-black uppercase transition-all min-w-[80px] ${tab === 'search' ? 'text-[#0e75d7] border-b-2 border-[#0e75d7]' : 'text-gray-400'}`}>
                 <Icons.Search /> <span>Busca</span>
               </button>
@@ -122,13 +140,13 @@
               )}
             </nav>
 
-            <main className="flex-grow max-w-7xl mx-auto w-full p-4 lg:p-8">
+            <main className="flex-grow max-w-7xl mx-auto w-full p-4 lg:p-8 fade-in">
               {tab === 'search' && <SearchTab user={user} />}
               {tab === 'carnes' && <CarnesTab user={user} />}
               {tab === 'upload' && <UploadTab user={user} />}
             </main>
             
-            <footer className="p-6 text-center text-[10px] font-black uppercase text-gray-400 bg-white dark:bg-[#161b22] border-t dark:border-gray-800">
+            <footer className="p-6 text-center text-[10px] font-black uppercase text-gray-400 bg-white dark:bg-[#161b22] border-t border-gray-200 dark:border-gray-800 transition-colors">
               Perfect Comércio de Confecções Ltda &copy; {new Date().getFullYear()} • Sarandi-PR
             </footer>
           </div>
@@ -137,14 +155,14 @@
 
       function TabBtn({ active, onClick, icon, label }) {
         return (
-          <button onClick={onClick} className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${active ? 'bg-blue-50 text-[#0e75d7] dark:bg-blue-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+          <button onClick={onClick} className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${active ? 'bg-blue-50 text-[#0e75d7] dark:bg-blue-900/20 shadow-sm' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
             {icon} <span className="uppercase text-xs tracking-tighter">{label}</span>
           </button>
         );
       }
 
       // --- TELA DE LOGIN ---
-      function LoginScreen({ onLogin, darkMode, onToggleTheme }) {
+      function LoginScreen({ onLogin, darkMode }) {
         const [form, setForm] = useState({ u: '', p: '', c: '' });
         const [captcha, setCaptcha] = useState({ q: '', a: 0 });
         const [showPass, setShowPass] = useState(false);
@@ -160,7 +178,7 @@
 
         const submit = async (e) => {
           e.preventDefault();
-          if (parseInt(form.c) !== captcha.a) { setError('Conta errada. Tente novamente.'); genCap(); return; }
+          if (parseInt(form.c) !== captcha.a) { setError('A soma está errada. Tente novamente.'); genCap(); return; }
           setLoading(true); setError('');
           try {
             const res = await fetch(`${API_BASE}/login`, {
@@ -178,28 +196,28 @@
         };
 
         return (
-          <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100 dark:bg-[#0b0e14]">
-            <div className="w-full max-w-md bg-white dark:bg-[#161b22] p-8 rounded-[2.5rem] shadow-2xl border dark:border-gray-800 fade-in">
+          <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100 dark:bg-[#0b0e14] transition-colors duration-300">
+            <div className="w-full max-w-md bg-white dark:bg-[#161b22] p-8 rounded-[2.5rem] shadow-2xl border border-gray-200 dark:border-gray-800 fade-in">
               <div className="text-center mb-8">
-                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-14 mx-auto mb-4 object-contain" />
+                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-14 mx-auto mb-4 object-contain transition-all" />
                 <h1 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Painel Interno</h1>
               </div>
               <form onSubmit={submit} className="space-y-4">
-                <input type="text" placeholder="Utilizador" className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" value={form.u} onChange={e => setForm({...form, u: e.target.value})} required />
+                <input type="text" placeholder="Utilizador" className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all" value={form.u} onChange={e => setForm({...form, u: e.target.value})} required />
                 <div className="relative">
-                  <input type={showPass ? "text" : "password"} placeholder="Senha"  className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" value={form.p} onChange={e => setForm({...form, p: e.target.value})} required />
+                  <input type={showPass ? "text" : "password"} placeholder="Senha"  className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border border-gray-200 dark:border-gray-800 outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all" value={form.p} onChange={e => setForm({...form, p: e.target.value})} required />
                   <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-4 text-gray-400 hover:text-[#0e75d7]">
                     {showPass ? <Icons.EyeOff /> : <Icons.Eye />}
                   </button>
                 </div>
-                <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+                <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30 transition-colors">
                   <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase">Resolva essa conta para provar que não é um robô:</p>
                   <div className="flex items-center gap-3">
-                    <span className="font-black text-xl text-[#0e75d7]">{captcha.q} =</span>
-                    <input type="number" placeholder="sua resposta aqui" className="w-full p-2 rounded-xl bg-white dark:bg-gray-800 dark:text-white border-2 border-blue-100 dark:border-blue-800 text-center font-bold focus:border-[#0e75d7] outline-none" value={form.c} onChange={e => setForm({...form, c: e.target.value})} required />
+                    <span className="font-black text-xl text-[#0e75d7] no-select">{captcha.q} =</span>
+                    <input type="number" placeholder="sua resposta aqui" className="w-full p-2 rounded-xl bg-white dark:bg-gray-800 dark:text-white border-2 border-blue-100 dark:border-blue-800 text-center font-bold focus:border-[#0e75d7] outline-none shadow-inner transition-all" value={form.c} onChange={e => setForm({...form, c: e.target.value})} required />
                   </div>
                 </div>
-                {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 dark:bg-red-950 p-2 rounded-lg">{error}</p>}
+                {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 dark:bg-red-950/50 p-2 rounded-lg">{error}</p>}
                 <button disabled={loading} className="w-full bg-[#0e75d7] hover:bg-[#0c64b8] text-white font-black py-4 rounded-2xl transition shadow-xl shadow-blue-600/20 active:scale-95">
                   {loading ? 'CARREGANDO...' : 'ENTRAR NO SISTEMA'}
                 </button>
@@ -219,8 +237,12 @@
         const [filter, setFilter] = useState('all'); 
         const perPage = 12;
 
+        const [cache, setCache] = useState({});
+
         const performSearch = async () => {
           if (!q) return;
+          if (cache[q]) { setFiles(cache[q]); setPage(1); return; }
+
           setLoading(true);
           let all = [];
           const paths = ['Fprodutos', 'VideosProdutos/Videos YT', 'VideosProdutos/Videos ML'];
@@ -236,6 +258,7 @@
               }
             }
             setFiles(all || []);
+            setCache(prev => ({ ...prev, [q]: all }));
             setPage(1);
           } catch (e) { console.error("Busca falhou"); }
           setLoading(false);
@@ -256,7 +279,7 @@
         const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
         const downloadAll = async () => {
-          if (!confirm(`Baixar os ${filtered.length} arquivos?`)) return;
+          if (!filtered.length || !confirm(`Baixar os ${filtered.length} arquivos encontrados?`)) return;
           for (const f of filtered) {
             await downloadFile(f.ObjectName, f.fullPath.split('/').slice(0,-1).join('/'), user.token);
             await new Promise(r => setTimeout(r, 600));
@@ -265,16 +288,16 @@
 
         return (
           <div className="space-y-6 fade-in">
-            <div className="bg-white dark:bg-[#161b22] p-6 rounded-[2.5rem] shadow-xl border dark:border-gray-800 space-y-4">
+            <div className="bg-white dark:bg-[#161b22] p-6 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 space-y-4 transition-all">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-grow relative text-[#0e75d7]">
                   <div className="absolute left-5 top-1/2 -translate-y-1/2 opacity-50"><Icons.Search /></div>
-                  <input className="w-full pl-14 pr-4 py-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" placeholder="Digite o SKU ou nome do produto..." value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && performSearch()} />
+                  <input className="w-full pl-14 pr-4 py-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all" placeholder="SKU ou nome do produto..." value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && performSearch()} />
                 </div>
                 <button onClick={performSearch} className="bg-[#0e75d7] text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-blue-600/20 active:scale-95 transition-all uppercase text-xs tracking-widest">BUSCAR</button>
               </div>
               
-              <div className="flex flex-wrap justify-between items-center gap-4 pt-4 border-t dark:border-gray-800">
+              <div className="flex flex-wrap justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-800 transition-colors">
                 <div className="flex gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
                   {['all', 'image', 'video'].map(f => (
                     <button key={f} onClick={() => setFilter(f)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${filter === f ? 'bg-white dark:bg-gray-700 text-[#0e75d7] shadow-sm' : 'text-gray-400'}`}>
@@ -287,22 +310,22 @@
                     <button onClick={() => setView('grid')} className={`p-2 rounded-lg transition-all ${view === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-400'}`}><Icons.Grid /></button>
                     <button onClick={() => setView('list')} className={`p-2 rounded-lg transition-all ${view === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-400'}`}><Icons.List /></button>
                   </div>
-                  {filtered.length > 0 && <button onClick={downloadAll} className="text-[#0e75d7] font-black text-[10px] uppercase flex items-center gap-1 hover:underline"><Icons.Download /> Baixar Todos</button>}
+                  {filtered.length > 0 && <button onClick={downloadAll} className="text-[#0e75d7] font-black text-[10px] uppercase flex items-center gap-1 hover:underline transition-all"><Icons.Download /> Baixar Tudo</button>}
                 </div>
               </div>
             </div>
 
-            {loading ? <div className="p-20 text-center"><div className="loader mx-auto"></div></div> : (
+            {loading ? <div className="p-20 text-center animate-pulse text-[#0e75d7] font-black tracking-widest uppercase">PROCURANDO...</div> : (
               <>
                 <div className={view === 'grid' ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6" : "space-y-2"}>
                   {paginated.map((f, i) => <FileCard key={i} file={f} view={view} user={user} />)}
                 </div>
 
                 {filtered.length > perPage && (
-                  <div className="flex justify-center items-center gap-6 mt-12 bg-white dark:bg-[#161b22] p-4 rounded-3xl border dark:border-gray-800 shadow-lg w-fit mx-auto transition-all">
-                    <button disabled={page === 1} onClick={() => { setPage(p => p - 1); window.scrollTo({top:0}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7]">Anterior</button>
+                  <div className="flex justify-center items-center gap-6 mt-12 bg-white dark:bg-[#161b22] p-4 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg w-fit mx-auto transition-all">
+                    <button disabled={page === 1} onClick={() => { setPage(p => p - 1); window.scrollTo({top:0, behavior: 'smooth'}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7] transition-all uppercase text-xs">Anterior</button>
                     <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Página {page} de {Math.ceil(filtered.length / perPage)}</span>
-                    <button disabled={page >= Math.ceil(filtered.length / perPage)} onClick={() => { setPage(p => p + 1); window.scrollTo({top:0}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7]">Próxima</button>
+                    <button disabled={page >= Math.ceil(filtered.length / perPage)} onClick={() => { setPage(p => p + 1); window.scrollTo({top:0, behavior: 'smooth'}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7] transition-all uppercase text-xs">Próxima</button>
                   </div>
                 )}
               </>
@@ -317,17 +340,18 @@
         const isImg = ['jpg','jpeg','png','webp','gif'].includes(ext);
         const url = `${PUBLIC_CDN}/${(file.fullPath || '').split('/').map(encodeURIComponent).join('/')}`;
         const date = file.LastChanged ? new Date(file.LastChanged).toLocaleDateString('pt-BR') : '-';
+        const sizeMb = (file.Length / (1024 * 1024)).toFixed(2);
 
         if (view === 'list') {
           return (
-            <div className="bg-white dark:bg-[#161b22] p-4 rounded-2xl border dark:border-gray-800 flex items-center justify-between gap-4 hover:border-[#0e75d7] transition group fade-in">
+            <div className="bg-white dark:bg-[#161b22] p-4 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4 hover:border-[#0e75d7] transition-all group fade-in">
               <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-black flex-shrink-0 flex items-center justify-center">
-                  {isImg ? <img src={url} className="w-full h-full object-cover" /> : <div className="text-white"><Icons.FileText /></div>}
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-black flex-shrink-0 flex items-center justify-center shadow-inner">
+                  {isImg ? <img src={url} className="w-full h-full object-cover" /> : <div className="text-white opacity-40"><Icons.FileText /></div>}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-black truncate dark:text-white uppercase tracking-tighter">{file.ObjectName}</p>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{ext} • {formatMB(file.Length)} MB • {date}</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{ext} • {sizeMb} MB • {date}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -339,13 +363,13 @@
         }
 
         return (
-          <div className="bg-white dark:bg-[#161b22] rounded-[2rem] overflow-hidden shadow-sm border dark:border-gray-800 group hover:shadow-2xl hover:-translate-y-1 transition-all relative fade-in">
+          <div className="bg-white dark:bg-[#161b22] rounded-[2rem] overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800 group hover:shadow-2xl hover:-translate-y-1 transition-all relative fade-in">
             <div className="aspect-square bg-gray-100 dark:bg-[#0d1117] flex items-center justify-center relative overflow-hidden">
               {isImg ? <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" /> : <div className="text-gray-400 opacity-20"><Icons.FileText /></div>}
-              <button onClick={() => setShowDetail(true)} className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full hover:bg-[#0e75d7] transition-all z-10"><Icons.Info /></button>
+              <button onClick={() => setShowDetail(true)} className="absolute top-3 right-3 p-2 bg-black/40 text-white rounded-full hover:bg-[#0e75d7] transition-all z-10"><Icons.Info /></button>
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3 backdrop-blur-[2px]">
-                <button onClick={() => window.open(url, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110"><Icons.Eye /></button>
-                <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110"><Icons.Download /></button>
+                <button onClick={() => window.open(url, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110 shadow-lg"><Icons.Eye /></button>
+                <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110 shadow-lg"><Icons.Download /></button>
               </div>
             </div>
             <div className="p-3 text-center">
@@ -357,10 +381,10 @@
             {showDetail && (
               <div className="absolute inset-0 bg-white/95 dark:bg-[#161b22]/98 p-6 flex flex-col justify-center animate-in zoom-in duration-200 z-20">
                  <button onClick={() => setShowDetail(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-all font-black uppercase text-xs">✕ Fechar</button>
-                 <h3 className="text-[10px] font-black uppercase text-[#0e75d7] mb-3 tracking-widest border-b pb-1">Informações</h3>
+                 <h3 className="text-[10px] font-black uppercase text-[#0e75d7] mb-3 tracking-widest border-b pb-1 text-center">Informações</h3>
                  <div className="text-[11px] font-bold text-gray-500 dark:text-gray-300 space-y-2 uppercase tracking-tighter">
-                    <p>Ficheiro: <span className="text-black dark:text-white break-all">{file.ObjectName}</span></p>
-                    <p>Tamanho: <span className="text-black dark:text-white">{formatMB(file.Length)} MB</span></p>
+                    <p>Ficheiro: <span className="text-black dark:text-white break-all text-xs">{file.ObjectName}</span></p>
+                    <p>Tamanho: <span className="text-black dark:text-white">{sizeMb} MB</span></p>
                     <p>Data: <span className="text-black dark:text-white">{date}</span></p>
                  </div>
               </div>
@@ -396,7 +420,7 @@
         return (
           <div className="space-y-4 fade-in">
             <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide no-select">
-              <div className="bg-white dark:bg-[#161b22] px-4 py-2 rounded-2xl border dark:border-gray-800 flex items-center gap-2 whitespace-nowrap shadow-sm">
+              <div className="bg-white dark:bg-[#161b22] px-4 py-2 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center gap-2 whitespace-nowrap shadow-sm transition-colors">
                 <Icons.Folder />
                 {path.split('/').map((p, i, arr) => (
                   <Fragment key={i}>
@@ -407,16 +431,16 @@
               </div>
             </div>
 
-            <div className="bg-white dark:bg-[#161b22] rounded-[2.5rem] border dark:border-gray-800 shadow-2xl overflow-hidden transition-all">
-              <div className="p-6 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div className="bg-white dark:bg-[#161b22] rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden transition-all">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex flex-col sm:flex-row gap-4 justify-between items-center transition-colors">
                  <div className="relative w-full sm:max-w-xs text-[#0e75d7]">
                    <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50"><Icons.Search /></div>
-                   <input className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0d1117] dark:text-white text-sm outline-none border-none shadow-inner" placeholder="Procurar nesta pasta..." value={filter} onChange={e => setFilter(e.target.value)} />
+                   <input className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0d1117] dark:text-white text-sm outline-none border-none shadow-inner transition-colors" placeholder="Procurar nesta pasta..." value={filter} onChange={e => setFilter(e.target.value)} />
                  </div>
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{filtered.length} Ficheiros</span>
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{filtered.length} ficheiros encontrados</span>
               </div>
-              {loading ? <div className="p-32 text-center text-gray-400 font-black animate-pulse">CARREGANDO...</div> : (
-                <div className="divide-y dark:divide-gray-800 max-h-[600px] overflow-y-auto custom-scroll">
+              {loading ? <div className="p-32 text-center text-gray-400 font-black animate-pulse uppercase tracking-widest">CARREGANDO...</div> : (
+                <div className="divide-y border-gray-100 dark:divide-gray-800 max-h-[600px] overflow-y-auto custom-scroll transition-colors">
                   {filtered.length === 0 && <div className="p-20 text-center text-gray-400 uppercase text-xs font-bold tracking-widest">A pasta está vazia.</div>}
                   {filtered.map((it, i) => (
                     <div key={i} className="p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group transition-all" onClick={() => it.IsDirectory && loadFolder(`${path}/${it.ObjectName}`)}>
@@ -426,7 +450,7 @@
                         </div>
                         <div>
                           <p className="font-extrabold text-sm uppercase dark:text-gray-200 group-hover:text-[#0e75d7] transition-all tracking-tighter">{it.ObjectName}</p>
-                          {!it.IsDirectory && <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documento • {formatMB(it.Length)} MB</p>}
+                          {!it.IsDirectory && <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documento • {(it.Length / 1024).toFixed(0)} KB</p>}
                         </div>
                       </div>
                       {!it.IsDirectory && (
@@ -475,9 +499,9 @@
 
         return (
           <div className="max-w-2xl mx-auto space-y-6 fade-in">
-            <div className="bg-white dark:bg-[#161b22] p-8 sm:p-12 rounded-[3rem] shadow-2xl border dark:border-gray-800 transition-all">
-              <div className="flex items-center gap-5 mb-10 border-b dark:border-gray-800 pb-6 text-[#0e75d7]">
-                <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-[1.5rem] shadow-lg"><Icons.Upload /></div>
+            <div className="bg-white dark:bg-[#161b22] p-8 sm:p-12 rounded-[3rem] shadow-2xl border border-gray-100 dark:border-gray-800 transition-all">
+              <div className="flex items-center gap-5 mb-10 border-b border-gray-100 dark:border-gray-800 pb-6 text-[#0e75d7]">
+                <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-[1.5rem] shadow-lg transition-colors"><Icons.Upload /></div>
                 <div>
                    <h2 className="text-2xl font-black uppercase tracking-tighter dark:text-white text-gray-900">Central de Envio</h2>
                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Multi-upload Ativo</p>
@@ -486,7 +510,7 @@
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest block">Pasta de Destino</label>
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest block uppercase">Pasta de Destino</label>
                   <select className="w-full p-5 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none font-bold text-sm focus:ring-2 focus:ring-[#0e75d7] transition-all cursor-pointer shadow-inner" value={target} onChange={e => setTarget(e.target.value)}>
                     <option value="Fprodutos">Fotos de Produtos</option>
                     <option value="VideosProdutos/Videos YT">Vídeos Youtube</option>
@@ -494,33 +518,34 @@
                   </select>
                 </div>
 
-                <div className="border-4 border-dashed border-gray-100 dark:border-gray-800 p-12 rounded-[2.5rem] text-center hover:border-[#0e75d7] transition-all cursor-pointer relative group bg-gray-50/50 dark:bg-gray-800/10 text-[#0e75d7]">
+                <div className="border-4 border-dashed border-gray-100 dark:border-gray-800 p-12 rounded-[2.5rem] text-center hover:border-[#0e75d7] transition-all cursor-pointer relative group bg-gray-50/50 dark:bg-[#0d1117] text-[#0e75d7]">
                   <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => { setFiles(Array.from(e.target.files)); setProgress({}); }} />
                   {files.length > 0 ? (
-                    <div className="flex flex-col items-center animate-in zoom-in text-[#0e75d7] font-black">
+                    <div className="flex flex-col items-center animate-in zoom-in text-[#0e75d7] font-black transition-colors">
                       <div className="mb-2"><Icons.Grid /></div>
-                      <p className="text-sm uppercase tracking-tighter">{files.length} Ficheiro(s) Prontos</p>
+                      <p className="text-sm uppercase tracking-tighter">{files.length} Ficheiro(s) Selecionados</p>
+                      <p className="text-[9px] text-gray-400 font-bold mt-2 uppercase">Clique para trocar</p>
                     </div>
                   ) : (
                     <div className="opacity-30 group-hover:opacity-100 transition-all transform group-hover:scale-105">
                       <div className="mx-auto mb-4 flex justify-center"><Icons.Grid /></div>
-                      <p className="font-black text-xs uppercase tracking-widest">Arraste múltiplos arquivos aqui</p>
+                      <p className="font-black text-xs uppercase tracking-widest uppercase">Arraste múltiplos arquivos aqui</p>
                     </div>
                   )}
                 </div>
 
                 {files.length > 0 && (
-                  <div className="space-y-3 bg-gray-50 dark:bg-[#0d1117] p-6 rounded-[2rem] max-h-[300px] overflow-y-auto custom-scroll shadow-inner border dark:border-gray-800 transition-all">
+                  <div className="space-y-3 bg-gray-50 dark:bg-[#0d1117] p-6 rounded-[2rem] max-h-[300px] overflow-y-auto custom-scroll shadow-inner border border-gray-100 dark:border-gray-800 transition-all">
                     {uploading && <div className="text-orange-500 font-black text-[10px] uppercase mb-4 animate-pulse">Não saia desta página até o fim!</div>}
                     {files.map((f, i) => (
                       <div key={i} className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
+                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest transition-colors">
                           <span className="truncate max-w-[70%] dark:text-gray-300">{f.name}</span>
-                          <span className={progress[i] === 'done' ? 'text-green-500' : progress[i] === 'error' ? 'text-red-500' : 'text-[#0e75d7]'}>
-                            {progress[i] === 'loading' ? 'CARREGANDO...' : progress[i] === 'done' ? 'OK' : progress[i] === 'error' ? 'ERRO' : 'PENDENTE'}
+                          <span className={progress[i] === 'done' ? 'text-green-500 font-bold' : progress[i] === 'error' ? 'text-red-500' : 'text-[#0e75d7]'}>
+                            {progress[i] === 'loading' ? 'ENVIANDO...' : progress[i] === 'done' ? 'CONCLUÍDO' : progress[i] === 'error' ? 'ERRO' : 'PENDENTE'}
                           </span>
                         </div>
-                        <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
+                        <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner transition-colors">
                           <div className={`h-full transition-all duration-700 ${progress[i] === 'done' ? 'bg-green-500' : progress[i] === 'error' ? 'bg-red-500' : progress[i] === 'loading' ? 'bg-[#0e75d7]' : 'bg-transparent'}`} style={{ width: progress[i] === 'done' ? '100%' : progress[i] === 'loading' ? '70%' : '0%' }} />
                         </div>
                       </div>
@@ -529,7 +554,7 @@
                 )}
 
                 <button disabled={!files.length || uploading} onClick={startUpload} className="w-full bg-[#0e75d7] hover:bg-[#0c64b8] text-white font-black py-5 rounded-3xl transition shadow-xl shadow-blue-600/10 disabled:opacity-20 active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
-                   <span>{uploading ? 'ENVIANDO ARQUIVOS...' : 'INICIAR UPLOAD AGORA'}</span>
+                   <span>{uploading ? 'PROCESSANDO...' : 'INICIAR UPLOAD'}</span>
                 </button>
               </div>
             </div>
@@ -539,7 +564,7 @@
 
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
-    })();
+    }
   </script>
 </body>
 </html>
