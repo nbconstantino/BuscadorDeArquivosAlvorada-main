@@ -1,542 +1,465 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Painel Interno - Lojas Alvorada</title>
+  <title>Sistema Interno - Lojas Alvorada</title>
   <link rel="icon" href="https://lojasalvorada.b-cdn.net/favicon.png" type="image/png">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              DEFAULT: '#E30613', // Vermelho típico de varejo (ajuste para a cor da sua logo)
-              dark: '#B0000A'
-            }
-          }
-        }
-      }
-    }
-  </script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Bibliotecas de ícones corrigidas -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide-react@latest"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    /* Estilos extras que o Tailwind não cobre perfeitamente */
-    .loader {
-      border: 4px solid #f3f3f3; border-top: 4px solid #E30613;
-      border-radius: 50%; width: 40px; height: 40px;
-      animation: spin 1s linear infinite; margin: 0 auto;
-    }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .loader { border: 3px solid #f3f3f3; border-top: 3px solid #E30613; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
     
-    /* Scrollbar customizada */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #555; }
+    /* Prevenir seleção de texto em elementos de UI */
+    .no-select { user-select: none; }
   </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300 min-h-screen flex flex-col">
+<body class="bg-gray-50 dark:bg-gray-950 transition-colors">
+  <div id="root"></div>
 
-  <!-- ================= TELA DE LOGIN ================= -->
-  <div id="loginScreen" class="flex-grow flex items-center justify-center p-4 fade-in">
-    <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-200 dark:border-gray-700">
-      <div class="text-center mb-8">
-        <img id="loginLogo" src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" alt="Logo Lojas Alvorada" class="h-16 mx-auto object-contain">
-        <h2 class="text-2xl font-bold mt-4">Painel Interno</h2>
-        <p class="text-gray-500 dark:text-gray-400 text-sm">Acesso restrito a colaboradores</p>
-      </div>
-
-      <form id="loginForm" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium mb-1">Senha de Acesso</label>
-          <input type="password" id="passwordInput" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-brand outline-none transition" placeholder="Digite a senha" required>
-        </div>
-
-        <!-- Captcha Simples -->
-        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-          <label class="block text-sm font-medium mb-2">Verificação de Segurança</label>
-          <div class="flex items-center gap-3">
-            <span id="captchaQuestion" class="font-bold text-lg tracking-wider bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded select-none">? + ?</span>
-            <span class="font-bold">=</span>
-            <input type="number" id="captchaInput" class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-brand outline-none text-center" placeholder="Resultado" required>
-          </div>
-        </div>
-
-        <button type="submit" class="w-full bg-brand hover:bg-brand-dark text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-lg shadow-brand/30">
-          Entrar no Sistema
-        </button>
-        <div id="loginError" class="text-red-500 text-sm text-center hidden mt-2 font-medium"></div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ================= TELA PRINCIPAL (SISTEMA) ================= -->
-  <div id="mainScreen" class="hidden flex-col min-h-screen">
-    <header class="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <img id="headerLogo" src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" alt="Logo Lojas Alvorada" class="h-10 sm:h-12 object-contain">
-        
-        <div class="flex items-center gap-2 sm:gap-4">
-          <button id="toggleViewMode" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-2 text-sm sm:text-base" title="Alternar Visualização">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
-            <span class="hidden sm:inline" id="viewModeText">Lista</span>
-          </button>
-          <button id="darkModeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Alternar Tema">
-            ☀️
-          </button>
-          <button id="logoutBtn" class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition" title="Sair">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      <!-- Barra de Busca -->
-      <div class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm mb-8 flex flex-col sm:flex-row gap-4 border border-gray-200 dark:border-gray-700">
-        <div class="relative flex-grow">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          </div>
-          <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-brand outline-none" placeholder="Digite o SKU ou nome (ex: blusa infantil)..." />
-        </div>
-        
-        <select id="fileTypeFilter" class="py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-brand outline-none sm:w-48">
-          <option value="">Todos os formatos</option>
-          <option value=".jpg">Imagens (.jpg)</option>
-          <option value=".png">Imagens (.png)</option>
-          <option value=".mp4">Vídeos (.mp4)</option>
-        </select>
-        
-        <button id="searchBtn" class="bg-brand hover:bg-brand-dark text-white font-bold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2">
-          Buscar
-        </button>
-      </div>
-
-      <!-- Estados da Busca -->
-      <div id="loading" class="hidden py-12 text-center">
-        <div class="loader mb-4"></div>
-        <p class="text-gray-500 font-medium">Buscando e organizando arquivos...</p>
-      </div>
-
-      <div id="noResults" class="hidden py-12 text-center fade-in">
-        <div class="text-6xl mb-4">📭</div>
-        <h3 class="text-xl font-bold mb-2">Nenhum arquivo encontrado</h3>
-        <p class="text-gray-500">Tente buscar por outro código ou remova os filtros.</p>
-      </div>
-
-      <!-- Container de Resultados -->
-      <div id="results" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 transition-all duration-300"></div>
-
-      <!-- Paginação -->
-      <div id="pagination" class="hidden mt-8 flex justify-center items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <button id="prevPageBtn" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Anterior</button>
-        <span id="pageInfo" class="font-medium text-gray-600 dark:text-gray-300">Página 1 de 1</span>
-        <button id="nextPageBtn" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition">Próxima</button>
-      </div>
-
-      <div class="text-center mt-8">
-        <button id="downloadAllBtn" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-lg shadow-green-600/30 items-center justify-center gap-2 mx-auto">
-          <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          Baixar Arquivos Desta Página
-        </button>
-      </div>
-    </main>
-
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
-      <div class="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
-        &copy; <span id="currentYear"></span> Lojas Alvorada - Perfect Comércio de Confecções Ltda. Sistema de uso interno.
-      </div>
-    </footer>
-  </div>
-
-  <script>
-    // ================= CONFIGURAÇÕES =================
-    // ATENÇÃO: Troque esta URL pela sua nova URL do Render!
-    const PROXY_URL = 'https://bunny-proxy.onrender.com'; 
-    const PUBLIC_URL = 'https://lojasalvorada.b-cdn.net';
-    const PATHS = ['Fprodutos', 'VideosProdutos/Videos YT', 'VideosProdutos/Videos ML'];
-    
-    // Configurações de Paginação
-    const ITEMS_PER_PAGE = 15;
-    let currentPage = 1;
-    let totalPages = 1;
-
-    // Estado global
-    let currentMatches = [];
-    let fileCache = {};
-    let isListView = false;
-    let captchaExpected = 0;
-
-    // ================= UI & TEMA =================
-    function initTheme() {
-      const isDark = localStorage.getItem('darkMode') !== 'false'; // Padrão é dark
-      setTheme(isDark);
-      document.getElementById('currentYear').textContent = new Date().getFullYear();
-    }
-
-    function setTheme(isDark) {
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-        document.getElementById('darkModeToggle').textContent = '☀️';
-        document.getElementById('loginLogo').src = 'https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png';
-        document.getElementById('headerLogo').src = 'https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png';
-      } else {
-        document.documentElement.classList.remove('dark');
-        document.getElementById('darkModeToggle').textContent = '🌙';
-        document.getElementById('loginLogo').src = 'https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png';
-        document.getElementById('headerLogo').src = 'https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png';
-      }
-      localStorage.setItem('darkMode', isDark);
-    }
-
-    function toggleViewMode() {
-      isListView = !isListView;
-      const resultsEl = document.getElementById('results');
-      const textEl = document.getElementById('viewModeText');
+  <script type="text/babel">
+    /**
+     * Encapsulamos em um escopo fechado para evitar erros de re-declaração 
+     * em ambientes de desenvolvimento (como o erro de 'Infinity').
+     */
+    (function() {
+      const { useState, useEffect, useMemo } = React;
       
-      if (isListView) {
-        resultsEl.className = 'flex flex-col gap-3 transition-all duration-300';
-        textEl.textContent = 'Galeria';
-      } else {
-        resultsEl.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 transition-all duration-300';
-        textEl.textContent = 'Lista';
-      }
-      
-      if (currentMatches.length > 0) renderPage(currentPage);
-    }
+      /**
+       * Correção do ReferenceError: 'lucide is not defined'
+       * Em ambientes CDN, o Lucide React geralmente expõe via 'LucideReact'
+       */
+      const Icons = typeof LucideReact !== 'undefined' ? LucideReact : (typeof lucide !== 'undefined' ? lucide : {});
+      const { 
+        Search, Upload, FileText, LogOut, Moon, Sun, Folder, 
+        ChevronRight, Download, Image, Film, Lock, CheckCircle, AlertCircle 
+      } = Icons;
 
-    // ================= AUTENTICAÇÃO E CAPTCHA =================
-    function generateCaptcha() {
-      const num1 = Math.floor(Math.random() * 10) + 1;
-      const num2 = Math.floor(Math.random() * 10) + 1;
-      captchaExpected = num1 + num2;
-      document.getElementById('captchaQuestion').textContent = `${num1} + ${num2}`;
-      document.getElementById('captchaInput').value = '';
-    }
+      const API_BASE = 'https://bunny-proxy.onrender.com/api'; 
+      const PUBLIC_CDN = 'https://lojasalvorada.b-cdn.net';
 
-    function checkAuth() {
-      const token = localStorage.getItem('alvorada_token');
-      if (token) {
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('mainScreen').classList.remove('hidden');
-        document.getElementById('mainScreen').classList.add('flex');
-      } else {
-        generateCaptcha();
-        document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('mainScreen').classList.add('hidden');
-        document.getElementById('mainScreen').classList.remove('flex');
-      }
-    }
+      function App() {
+        const [user, setUser] = useState(null);
+        const [tab, setTab] = useState('search');
+        const [darkMode, setDarkMode] = useState(true);
+        const [captcha, setCaptcha] = useState({ q: '', a: 0 });
+        const [credentials, setCredentials] = useState({ user: '', pass: '', captcha: '' });
+        const [error, setError] = useState('');
+        const [loading, setLoading] = useState(false);
 
-    async function handleLogin(e) {
-      e.preventDefault();
-      const password = document.getElementById('passwordInput').value;
-      const captchaInput = parseInt(document.getElementById('captchaInput').value);
-      const errorEl = document.getElementById('loginError');
-
-      if (captchaInput !== captchaExpected) {
-        errorEl.textContent = "Verificação de segurança incorreta. Tente novamente.";
-        errorEl.classList.remove('hidden');
-        generateCaptcha();
-        return;
-      }
-
-      errorEl.classList.add('hidden');
-      const btn = e.target.querySelector('button');
-      btn.innerHTML = '<div class="loader" style="width:20px;height:20px;border-top-color:#fff"></div>';
-      btn.disabled = true;
-
-      try {
-        const response = await fetch(`${PROXY_URL}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          localStorage.setItem('alvorada_token', data.token);
-          checkAuth();
-        } else {
-          errorEl.textContent = data.error || "Senha incorreta.";
-          errorEl.classList.remove('hidden');
+        useEffect(() => {
+          const session = localStorage.getItem('alvorada_session');
+          if (session) {
+            try {
+              setUser(JSON.parse(session));
+            } catch(e) {
+              localStorage.removeItem('alvorada_session');
+            }
+          }
           generateCaptcha();
-        }
-      } catch (err) {
-        errorEl.textContent = "Erro ao conectar com o servidor.";
-        errorEl.classList.remove('hidden');
-      } finally {
-        btn.innerHTML = 'Entrar no Sistema';
-        btn.disabled = false;
-        document.getElementById('passwordInput').value = '';
-      }
-    }
+          if (darkMode) document.documentElement.classList.add('dark');
+        }, []);
 
-    function logout() {
-      localStorage.removeItem('alvorada_token');
-      currentMatches = [];
-      document.getElementById('results').innerHTML = '';
-      document.getElementById('pagination').classList.add('hidden');
-      document.getElementById('downloadAllBtn').classList.add('hidden');
-      checkAuth();
-    }
+        const generateCaptcha = () => {
+          const n1 = Math.floor(Math.random() * 9) + 1;
+          const n2 = Math.floor(Math.random() * 9) + 1;
+          setCaptcha({ q: `${n1} + ${n2}`, a: n1 + n2 });
+        };
 
-    // ================= BUSCA E FETCH =================
-    async function fetchWithAuth(url, isDownload = false) {
-      const token = localStorage.getItem('alvorada_token');
-      const options = {
-        headers: { 'Authorization': `Bearer ${token}` }
-      };
-
-      const res = await fetch(url, options);
-      if (res.status === 401 || res.status === 403) {
-        logout();
-        throw new Error('Sessão expirada. Faça login novamente.');
-      }
-      return res;
-    }
-
-    async function searchFiles() {
-      const input = document.getElementById('searchInput').value.trim().toLowerCase();
-      const terms = input.split(/[,\s]+/).filter(Boolean);
-      const fileType = document.getElementById('fileTypeFilter').value;
-      
-      const resultsEl = document.getElementById('results');
-      const loadingEl = document.getElementById('loading');
-      const noResultsEl = document.getElementById('noResults');
-      const downloadAllBtn = document.getElementById('downloadAllBtn');
-      const paginationEl = document.getElementById('pagination');
-
-      resultsEl.innerHTML = '';
-      currentMatches = [];
-      loadingEl.classList.remove('hidden');
-      noResultsEl.classList.add('hidden');
-      downloadAllBtn.classList.add('hidden');
-      paginationEl.classList.add('hidden');
-
-      if (!terms.length) {
-        alert("Por favor, digite um código ou nome para buscar.");
-        loadingEl.classList.add('hidden');
-        return;
-      }
-
-      try {
-        for (const path of PATHS) {
-          if (!fileCache[path]) {
-            const res = await fetchWithAuth(`${PROXY_URL}/list?path=${encodeURIComponent(path)}`);
-            fileCache[path] = await res.json();
+        const handleLogin = async (e) => {
+          e.preventDefault();
+          if (parseInt(credentials.captcha) !== captcha.a) {
+            setError('Soma do Captcha incorreta.');
+            generateCaptcha();
+            return;
           }
 
-          const files = fileCache[path];
-          const matches = files.filter((file) => {
-            const name = file.ObjectName.toLowerCase();
-            const ext = '.' + name.split('.').pop();
-            return terms.some((t) => name.includes(t)) && (!fileType || ext === fileType);
-          });
-
-          matches.forEach((file) => {
-            currentMatches.push({
-              path: `${path}/${file.ObjectName}`,
-              name: file.ObjectName,
-              size: file.Length,
-              date: file.LastChanged
+          setLoading(true);
+          setError('');
+          try {
+            const res = await fetch(`${API_BASE}/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: credentials.user, password: credentials.pass })
             });
-          });
-        }
-      } catch (err) {
-        console.error(err);
-        if(err.message !== 'Sessão expirada. Faça login novamente.'){
-           alert("Erro ao buscar arquivos: " + err.message);
-        }
-      }
+            const data = await res.json();
+            if (res.ok) {
+              setUser(data);
+              localStorage.setItem('alvorada_session', JSON.stringify(data));
+            } else {
+              setError(data.error || 'Falha no login');
+              generateCaptcha();
+            }
+          } catch (err) {
+            setError('Erro ao conectar ao servidor de autenticação.');
+          } finally {
+            setLoading(false);
+          }
+        };
 
-      loadingEl.classList.add('hidden');
+        const logout = () => {
+          setUser(null);
+          localStorage.removeItem('alvorada_session');
+        };
 
-      if (currentMatches.length === 0) {
-        noResultsEl.classList.remove('hidden');
-      } else {
-        currentPage = 1;
-        totalPages = Math.ceil(currentMatches.length / ITEMS_PER_PAGE);
-        renderPage(currentPage);
-        downloadAllBtn.classList.remove('hidden');
-        
-        if (totalPages > 1) {
-          paginationEl.classList.remove('hidden');
-          paginationEl.classList.add('flex');
-        }
-      }
-    }
-
-    // ================= RENDERIZAÇÃO E PAGINAÇÃO =================
-    function renderPage(page) {
-      const resultsEl = document.getElementById('results');
-      resultsEl.innerHTML = '';
-      
-      const start = (page - 1) * ITEMS_PER_PAGE;
-      const end = start + ITEMS_PER_PAGE;
-      const pageItems = currentMatches.slice(start, end);
-
-      pageItems.forEach((file) => {
-        const ext = file.name.split('.').pop().toLowerCase();
-        const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
-        const isVideo = ['mp4', 'webm', 'mov'].includes(ext);
-        const fileUrl = `${PUBLIC_URL}/${encodeURIComponentPath(file.path)}`;
-
-        const item = document.createElement('div');
-        item.className = `bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow fade-in group relative ${isListView ? 'flex items-center gap-4 p-3' : 'flex flex-col'}`;
-
-        // Mídia
-        const mediaContainer = document.createElement('div');
-        mediaContainer.className = isListView ? 'w-24 h-24 flex-shrink-0 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden' : 'aspect-square bg-gray-100 dark:bg-gray-900 relative overflow-hidden';
-        
-        if (isImage) {
-          mediaContainer.innerHTML = `<img src="${fileUrl}" loading="lazy" alt="${file.name}" class="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform" onclick="window.open('${fileUrl}', '_blank')">`;
-        } else if (isVideo) {
-          mediaContainer.innerHTML = `<video src="${fileUrl}" class="w-full h-full object-cover" controls preload="metadata"></video>`;
-        } else {
-          mediaContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-4xl">📄</div>`;
+        if (!user) {
+          return (
+            <div className="min-h-screen flex items-center justify-center p-4">
+              <div className="w-full max-w-md bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl border dark:border-gray-800 animate-in fade-in duration-500">
+                <div className="text-center mb-8">
+                  <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png" className="h-14 mx-auto mb-4" alt="Alvorada Logo" />
+                  <h2 className="text-2xl font-extrabold dark:text-white">Acesso Restrito</h2>
+                  <p className="text-gray-400 text-xs uppercase tracking-widest font-bold mt-1">Colaboradores Alvorada</p>
+                </div>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <input type="text" placeholder="Utilizador" className="w-full p-4 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-red-500 transition-all" value={credentials.user} onChange={e => setCredentials({...credentials, user: e.target.value})} required />
+                  <input type="password" placeholder="Senha" className="w-full p-4 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-red-500 transition-all" value={credentials.pass} onChange={e => setCredentials({...credentials, pass: e.target.value})} required />
+                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl border dark:border-gray-700">
+                    <span className="bg-red-600 text-white px-3 py-1 rounded-lg font-bold select-none">{captcha.q} =</span>
+                    <input type="number" placeholder="?" className="w-full bg-transparent dark:text-white outline-none font-bold text-center" value={credentials.captcha} onChange={e => setCredentials({...credentials, captcha: e.target.value})} required />
+                  </div>
+                  {error && <div className="text-red-500 text-sm font-bold flex items-center gap-2 px-1 animate-pulse"><AlertCircle size={16}/> {error}</div>}
+                  <button disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-red-600/30 active:scale-95 disabled:opacity-50">
+                    {loading ? 'AUTENTICANDO...' : 'ENTRAR NO SISTEMA'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          );
         }
 
-        // Informações
-        const infoContainer = document.createElement('div');
-        infoContainer.className = isListView ? 'flex-grow min-w-0' : 'p-3 flex flex-col flex-grow';
-        
-        infoContainer.innerHTML = `
-          <p class="font-semibold text-sm truncate" title="${file.name}">${file.name}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${formatBytes(file.size)} &bull; ${formatDate(file.date)}</p>
-          
-          <div class="mt-auto pt-3 flex flex-wrap gap-2 ${isListView ? '' : 'justify-center'}">
-            <button onclick="downloadFile('${encodeURIComponent(file.path)}')" class="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white text-xs font-semibold py-2 px-3 rounded flex items-center justify-center gap-1 transition">
-              ⬇️ Baixar
-            </button>
-            ${window.innerWidth < 768 && (isImage || isVideo) ? 
-              `<button onclick="shareWhatsApp('${fileUrl}')" class="flex-1 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-2 px-3 rounded flex items-center justify-center gap-1 transition">
-                📤 Zap
-              </button>` : ''}
+        return (
+          <div className="min-h-screen flex flex-col dark:bg-gray-950 dark:text-white transition-colors">
+            <nav className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-50">
+              <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png" className="h-10 dark:hidden" alt="Logo" />
+                  <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" className="h-10 hidden dark:block" alt="Logo" />
+                </div>
+                
+                <div className="hidden md:flex items-center gap-2">
+                  <NavBtn active={tab === 'search'} onClick={() => setTab('search')} icon={Search && <Search size={18}/>} label="Produtos" />
+                  {user.role === 'admin' && <NavBtn active={tab === 'carnes'} onClick={() => setTab('carnes')} icon={FileText && <FileText size={18}/>} label="Carnês" />}
+                  {['admin', 'editor'].includes(user.role) && <NavBtn active={tab === 'upload'} onClick={() => setTab('upload')} icon={Upload && <Upload size={18}/>} label="Upload" />}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="hidden sm:block text-right mr-2">
+                     <p className="text-[10px] font-black uppercase text-gray-400">Olá, {user.name}</p>
+                     <p className="text-[9px] font-bold text-red-500 uppercase">{user.role}</p>
+                  </div>
+                  <button onClick={() => {
+                    setDarkMode(!darkMode);
+                    document.documentElement.classList.toggle('dark');
+                  }} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-2xl transition hover:bg-gray-100 dark:hover:bg-gray-700">
+                    {darkMode ? (Sun && <Sun size={20}/>) : (Moon && <Moon size={20}/>)}
+                  </button>
+                  <button onClick={logout} className="p-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-2xl transition hover:bg-red-100 dark:hover:bg-red-900/40">
+                    {LogOut && <LogOut size={20}/>}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Mobile Nav */}
+              <div className="md:hidden flex border-t dark:border-gray-800">
+                 <button onClick={() => setTab('search')} className={`flex-1 py-4 text-[10px] font-black uppercase transition ${tab === 'search' ? 'text-red-600 border-b-2 border-red-600 bg-red-50/10' : 'text-gray-400'}`}>Produtos</button>
+                 {user.role === 'admin' && <button onClick={() => setTab('carnes')} className={`flex-1 py-4 text-[10px] font-black uppercase transition ${tab === 'carnes' ? 'text-red-600 border-b-2 border-red-600 bg-red-50/10' : 'text-gray-400'}`}>Carnês</button>}
+                 {['admin', 'editor'].includes(user.role) && <button onClick={() => setTab('upload')} className={`flex-1 py-4 text-[10px] font-black uppercase transition ${tab === 'upload' ? 'text-red-600 border-b-2 border-red-600 bg-red-50/10' : 'text-gray-400'}`}>Upload</button>}
+              </div>
+            </nav>
+
+            <main className="flex-grow max-w-7xl mx-auto w-full p-6 sm:p-10">
+              {tab === 'search' && <SearchTab user={user} />}
+              {tab === 'carnes' && <CarnesTab user={user} />}
+              {tab === 'upload' && <UploadTab user={user} />}
+            </main>
           </div>
-        `;
-
-        item.appendChild(mediaContainer);
-        item.appendChild(infoContainer);
-        resultsEl.appendChild(item);
-      });
-
-      updatePaginationControls();
-    }
-
-    function updatePaginationControls() {
-      document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
-      document.getElementById('prevPageBtn').disabled = currentPage === 1;
-      document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
-    }
-
-    // ================= FUNÇÕES UTILITÁRIAS =================
-    function formatBytes(bytes) {
-      if (bytes < 1024) return `${bytes} B`;
-      const kb = bytes / 1024;
-      if (kb < 1024) return `${kb.toFixed(1)} KB`;
-      return `${(kb / 1024).toFixed(1)} MB`;
-    }
-
-    function formatDate(dateStr) {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('pt-BR');
-    }
-
-    function encodeURIComponentPath(path) {
-      return path.split('/').map(encodeURIComponent).join('/');
-    }
-
-    // ================= DOWNLOADS =================
-    async function downloadFile(encodedPath) {
-      const token = localStorage.getItem('alvorada_token');
-      // Como não podemos mandar header de auth no <a> direto, fazemos fetch do blob
-      try {
-        const res = await fetch(`${PROXY_URL}/download?path=${encodedPath}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (!res.ok) throw new Error('Falha no download');
-        
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = decodeURIComponent(encodedPath.split('/').pop());
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch(err) {
-        alert("Erro ao baixar o arquivo. Verifique sua conexão.");
-      }
-    }
-
-    async function downloadAllPage() {
-      const start = (currentPage - 1) * ITEMS_PER_PAGE;
-      const end = start + ITEMS_PER_PAGE;
-      const pageItems = currentMatches.slice(start, end);
-      
-      if (!pageItems.length) return;
-
-      const btn = document.getElementById('downloadAllBtn');
-      const originalText = btn.innerHTML;
-      btn.innerHTML = `<div class="loader inline-block align-middle" style="width:20px;height:20px;border-top-color:#fff;margin-right:10px;"></div> Baixando...`;
-      btn.disabled = true;
-
-      for (let i = 0; i < pageItems.length; i++) {
-        await downloadFile(encodeURIComponent(pageItems[i].path));
-        // Pequena pausa para não travar o navegador com múltiplos downloads simultâneos
-        await new Promise(r => setTimeout(r, 800)); 
+        );
       }
 
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    }
+      // --- COMPONENTES AUXILIARES ---
 
-    function shareWhatsApp(url) {
-      const msg = `Confira este produto da Lojas Alvorada: ${url}`;
-      const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      window.open(waUrl, '_blank');
-    }
-
-    // ================= EVENT LISTENERS =================
-    window.addEventListener('DOMContentLoaded', () => {
-      initTheme();
-      checkAuth();
-      
-      document.getElementById('darkModeToggle').addEventListener('click', () => {
-        setTheme(!document.documentElement.classList.contains('dark'));
-      });
-      document.getElementById('toggleViewMode').addEventListener('click', toggleViewMode);
-      document.getElementById('loginForm').addEventListener('submit', handleLogin);
-      document.getElementById('logoutBtn').addEventListener('click', logout);
-      document.getElementById('searchBtn').addEventListener('click', searchFiles);
-      document.getElementById('downloadAllBtn').addEventListener('click', downloadAllPage);
-      
-      document.getElementById('prevPageBtn').addEventListener('click', () => {
-        if (currentPage > 1) { currentPage--; renderPage(currentPage); window.scrollTo({top: 0, behavior: 'smooth'}); }
-      });
-      
-      document.getElementById('nextPageBtn').addEventListener('click', () => {
-        if (currentPage < totalPages) { currentPage++; renderPage(currentPage); window.scrollTo({top: 0, behavior: 'smooth'}); }
-      });
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !document.getElementById('mainScreen').classList.contains('hidden')) {
-        // Só busca se o foco estiver no input de busca para não conflitar com botões
-        if (document.activeElement === document.getElementById('searchInput')) {
-          searchFiles();
-        }
+      function NavBtn({ active, onClick, icon, label }) {
+        return (
+          <button onClick={onClick} className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${active ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+            {icon} <span>{label}</span>
+          </button>
+        );
       }
-    });
+
+      function SearchTab({ user }) {
+        const [query, setQuery] = useState('');
+        const [results, setResults] = useState([]);
+        const [loading, setLoading] = useState(false);
+        const [page, setPage] = useState(1);
+        const itemsPerPage = 12;
+
+        const handleSearch = async () => {
+          if (!query) return;
+          setLoading(true);
+          let all = [];
+          const paths = ['Fprodutos', 'VideosProdutos/Videos YT', 'VideosProdutos/Videos ML'];
+          try {
+            for (const path of paths) {
+              const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(path)}`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+              });
+              const data = await res.json();
+              const matches = Array.isArray(data) ? data.filter(f => f.ObjectName.toLowerCase().includes(query.toLowerCase())) : [];
+              all = [...all, ...matches.map(f => ({ ...f, fullPath: `${path}/${f.ObjectName}` }))];
+            }
+            setResults(all);
+            setPage(1);
+          } catch (e) { 
+            console.error("Search error:", e);
+            alert("Erro ao carregar ficheiros."); 
+          }
+          finally { setLoading(false); }
+        };
+
+        const paginated = results.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+        return (
+          <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="bg-white dark:bg-gray-900 p-5 rounded-[2.5rem] shadow-xl border dark:border-gray-800 flex flex-col md:flex-row gap-4">
+              <div className="flex-grow relative">
+                {Search && <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>}
+                <input type="text" placeholder="SKU ou nome do produto..." className="w-full pl-14 pr-6 py-4 rounded-3xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-red-500 dark:text-white transition-all" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+              </div>
+              <button onClick={handleSearch} className="bg-red-600 text-white px-12 py-4 rounded-3xl font-extrabold hover:bg-red-700 transition shadow-lg shadow-red-600/20 active:scale-95">
+                {loading ? 'A BUSCAR...' : 'BUSCAR AGORA'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              {paginated.map((file, i) => (
+                <FileCard key={i} file={file} user={user} />
+              ))}
+            </div>
+
+            {results.length > itemsPerPage && (
+              <div className="flex justify-center items-center gap-8 pt-12">
+                <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="p-4 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-3xl disabled:opacity-20 font-bold hover:shadow-lg transition">Anterior</button>
+                <span className="font-black text-gray-400 uppercase tracking-widest text-xs">Página {page} de {Math.ceil(results.length / itemsPerPage)}</span>
+                <button disabled={page >= Math.ceil(results.length / itemsPerPage)} onClick={() => setPage(p => p + 1)} className="p-4 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-3xl disabled:opacity-20 font-bold hover:shadow-lg transition">Próxima</button>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      function FileCard({ file, user }) {
+        const ext = file.ObjectName.split('.').pop().toLowerCase();
+        const isImg = ['jpg', 'png', 'webp', 'gif', 'jpeg'].includes(ext);
+        const url = `${PUBLIC_CDN}/${encodeURIComponentPath(file.fullPath)}`;
+
+        return (
+          <div className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-sm border dark:border-gray-800 group transition-all hover:shadow-2xl hover:-translate-y-1 relative">
+            <div className="aspect-square bg-gray-100 dark:bg-gray-950 flex items-center justify-center relative overflow-hidden">
+               {isImg ? 
+                 <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" alt={file.ObjectName} /> :
+                 (Film && <Film className="text-gray-400 opacity-20" size={64} />)
+               }
+               <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                  <button onClick={() => window.open(url, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-transform transform hover:scale-110 shadow-lg">{Search && <Search size={20}/>}</button>
+                  <button onClick={() => downloadFile(file.fullPath, user)} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-transform transform hover:scale-110 shadow-lg">{Download && <Download size={20}/>}</button>
+               </div>
+            </div>
+            <div className="p-4">
+              <p className="text-[10px] font-black truncate dark:text-gray-300 uppercase tracking-tighter" title={file.ObjectName}>{file.ObjectName}</p>
+              <p className="text-[9px] text-gray-500 font-bold mt-1">{(file.Length / 1024 / 1024).toFixed(2)} MB</p>
+            </div>
+          </div>
+        );
+      }
+
+      function CarnesTab({ user }) {
+        const [path, setPath] = useState('Carnes');
+        const [items, setItems] = useState([]);
+        const [loading, setLoading] = useState(false);
+        const [search, setSearch] = useState('');
+
+        const fetchFolder = async (folder) => {
+          setLoading(true);
+          try {
+            const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(folder)}`, {
+              headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            const data = await res.json();
+            setItems(Array.isArray(data) ? data : []);
+            setPath(folder);
+          } catch (e) { alert("Erro ao carregar dados."); }
+          finally { setLoading(false); }
+        };
+
+        useEffect(() => { fetchFolder('Carnes'); }, []);
+
+        const filtered = items.filter(i => i.ObjectName.toLowerCase().includes(search.toLowerCase()));
+
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-4">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-900 px-4 py-2 rounded-2xl border dark:border-gray-800 shadow-sm">
+                {path.split('/').map((p, i, arr) => (
+                  <React.Fragment key={i}>
+                    <button onClick={() => fetchFolder(arr.slice(0, i+1).join('/'))} className="font-black text-xs hover:text-red-600 transition whitespace-nowrap uppercase tracking-widest">{p}</button>
+                    {i < arr.length - 1 && (ChevronRight && <ChevronRight size={14} className="opacity-20" />)}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border dark:border-gray-800 shadow-2xl overflow-hidden">
+              <div className="p-6 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+                 <div className="relative">
+                   {Search && <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>}
+                   <input type="text" placeholder="Filtrar nesta pasta..." className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white dark:bg-gray-800 border-none outline-none dark:text-white text-sm shadow-inner" value={search} onChange={e => setSearch(e.target.value)} />
+                 </div>
+              </div>
+              {loading ? <div className="p-32 text-center text-gray-400 animate-pulse font-bold tracking-widest uppercase">A CARREGAR...</div> : (
+                <div className="divide-y dark:divide-gray-800 max-h-[600px] overflow-y-auto">
+                  {filtered.length === 0 && <div className="p-20 text-center text-gray-400 text-sm">Nenhum arquivo ou pasta encontrada.</div>}
+                  {filtered.map((item, i) => (
+                    <div key={i} className="p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition group" onClick={() => item.IsDirectory && fetchFolder(`${path}/${item.ObjectName}`)}>
+                      <div className="flex items-center gap-5">
+                        <div className={`p-4 rounded-2xl ${item.IsDirectory ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'}`}>
+                          {item.IsDirectory ? (Folder && <Folder size={24}/>) : (FileText && <FileText size={24}/>)}
+                        </div>
+                        <div>
+                          <span className="font-extrabold text-sm dark:text-gray-200 group-hover:text-red-600 transition uppercase tracking-tighter">{item.ObjectName}</span>
+                          {!item.IsDirectory && <p className="text-[9px] font-black uppercase text-gray-400 mt-1 tracking-widest">{(item.Length/1024).toFixed(1)} KB</p>}
+                        </div>
+                      </div>
+                      {!item.IsDirectory && <button onClick={(e) => { e.stopPropagation(); downloadFile(`${path}/${item.ObjectName}`, user); }} className="p-4 bg-gray-50 dark:bg-gray-800 hover:bg-red-600 hover:text-white rounded-2xl transition shadow-sm">{Download && <Download size={20}/>}</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      function UploadTab({ user }) {
+        const [file, setFile] = useState(null);
+        const [target, setTarget] = useState('Fprodutos');
+        const [uploading, setUploading] = useState(false);
+        const [status, setStatus] = useState(null);
+
+        const handleUpload = async (e) => {
+          e.preventDefault();
+          if (!file) return;
+          setUploading(true);
+          setStatus(null);
+
+          const form = new FormData();
+          form.append('file', file);
+          form.append('path', `${target}/${file.name}`);
+
+          try {
+            const res = await fetch(`${API_BASE}/upload`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${user.token}` },
+              body: form
+            });
+            if (res.ok) {
+              setStatus({ type: 'success', msg: 'Ficheiro guardado com sucesso na Bunny.net!' });
+              setFile(null);
+            } else {
+              setStatus({ type: 'error', msg: 'Falha ao processar o upload.' });
+            }
+          } catch (e) { setStatus({ type: 'error', msg: 'Erro de ligação com o servidor.' }); }
+          finally { setUploading(false); }
+        };
+
+        return (
+          <div className="max-w-xl mx-auto bg-white dark:bg-gray-900 p-10 rounded-[3rem] shadow-2xl border dark:border-gray-800 animate-in slide-in-from-bottom-5 duration-500">
+            <div className="flex items-center gap-4 mb-10">
+              <div className="p-4 bg-red-600 text-white rounded-2xl shadow-lg shadow-red-600/30">
+                 {Upload && <Upload size={32}/>}
+              </div>
+              <div>
+                 <h2 className="text-2xl font-black tracking-tight uppercase">Central de Upload</h2>
+                 <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Gestão de Mídias Bunny</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleUpload} className="space-y-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest">Pasta de Destino</label>
+                <select className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 outline-none font-bold text-sm shadow-inner" value={target} onChange={e => setTarget(e.target.value)}>
+                  <option value="Fprodutos">Fotos de Produtos (Fprodutos)</option>
+                  <option value="VideosProdutos/Videos YT">Vídeos para YouTube</option>
+                  <option value="VideosProdutos/Videos ML">Vídeos para Mercado Livre</option>
+                </select>
+              </div>
+              
+              <div className="border-4 border-dashed dark:border-gray-800 p-12 rounded-[2.5rem] text-center hover:border-red-500 transition-all cursor-pointer relative group bg-gray-50/30 dark:bg-gray-800/20">
+                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFile(e.target.files[0])} />
+                {file ? (
+                  <div className="flex flex-col items-center animate-in zoom-in duration-300">
+                     <div className="p-4 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-full mb-3">{CheckCircle && <CheckCircle size={40} />}</div>
+                     <p className="font-extrabold text-sm break-all px-4 tracking-tighter uppercase">{file.name}</p>
+                     <p className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">Pronto para carregar</p>
+                  </div>
+                ) : (
+                  <div className="opacity-40 group-hover:opacity-100 transition-all transform group-hover:scale-105">
+                    {Image && <Image className="mx-auto mb-4" size={56} />}
+                    <p className="font-black text-xs uppercase tracking-widest">Arraste ou clique para selecionar</p>
+                    <p className="text-[9px] font-bold text-gray-500 mt-2 uppercase tracking-widest">Imagens e vídeos permitidos</p>
+                  </div>
+                )}
+              </div>
+
+              {status && (
+                <div className={`p-5 rounded-[1.5rem] font-bold text-xs flex items-center gap-3 animate-in fade-in duration-300 ${status.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/20' : 'bg-red-50 text-red-700 dark:bg-red-900/20'}`}>
+                  {status.type === 'success' ? (CheckCircle && <CheckCircle size={20}/>) : (AlertCircle && <AlertCircle size={20}/>)} 
+                  <span className="flex-1 uppercase tracking-tighter">{status.msg}</span>
+                </div>
+              )}
+
+              <button disabled={!file || uploading} className="w-full bg-black dark:bg-red-600 text-white font-black py-5 rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-red-600/20 disabled:opacity-20 active:scale-95 uppercase tracking-widest text-sm">
+                {uploading ? 'A ENVIAR PARA O SERVIDOR...' : 'INICIAR UPLOAD AGORA'}
+              </button>
+            </form>
+          </div>
+        );
+      }
+
+      // --- HELPERS ---
+
+      async function downloadFile(path, user) {
+        try {
+          const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path)}`, {
+            headers: { 'Authorization': `Bearer ${user.token}` }
+          });
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = path.split('/').pop();
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } catch (e) { alert("Falha no download."); }
+      }
+
+      function encodeURIComponentPath(path) {
+        return path.split('/').map(encodeURIComponent).join('/');
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    })();
   </script>
 </body>
 </html>
