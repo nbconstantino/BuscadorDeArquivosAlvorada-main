@@ -653,4 +653,4 @@ async function download(name, path, user) {
 
 function encodeURIComponentPath(path) {
   return path.split('/').map(encodeURIComponent).join('/');
-}
+};;
