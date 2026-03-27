@@ -7,13 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://unpkg.com/lucide-react@latest"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.3s; margin: 0; }
-    .dark { background: #0b0e14; color: white; }
+    .dark { background: #0b0e14 !important; color: white !important; }
     .btn-blue { background-color: #0e75d7; }
     .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0e75d7; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -28,14 +26,27 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    // ISOLAMENTO DE ESCOPO PARA EVITAR ERRO DE REDECLARAÇÃO
-    {
+    // ISOLAMENTO DE ESCOPO para evitar erro 'Infinity'
+    (function() {
       const { useState, useEffect, useMemo, Fragment } = React;
-      const Lucide = typeof LucideReact !== 'undefined' ? LucideReact : {};
-      const { 
-        Search, Upload, FileText, LogOut, Moon, Sun, Folder, ChevronRight, Download, 
-        Image, Film, Lock, CheckCircle, AlertCircle, Eye, EyeOff, LayoutGrid, List, Info, X, Files, Loader2
-      } = Lucide;
+
+      // ÍCONES SVG INLINE - Garantia de que aparecem
+      const Icons = {
+        Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
+        Upload: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>,
+        FileText: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>,
+        LogOut: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>,
+        Moon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>,
+        Sun: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line></svg>,
+        Download: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>,
+        Folder: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>,
+        ChevronRight: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>,
+        Grid: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>,
+        List: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line></svg>,
+        Eye: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>,
+        EyeOff: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>,
+        Info: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+      };
 
       const API_BASE = 'https://bunny-proxy.onrender.com/api'; 
       const PUBLIC_CDN = 'https://lojasalvorada.b-cdn.net';
@@ -51,16 +62,13 @@
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url;
-          a.download = name;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
+          a.href = url; a.download = name;
+          document.body.appendChild(a); a.click(); a.remove();
           window.URL.revokeObjectURL(url);
-        } catch (e) { console.error("Erro no download"); }
+        } catch (e) { console.error("Download falhou"); }
       };
 
-      // --- COMPONENTE APP ---
+      // --- COMPONENTE PRINCIPAL ---
       function App() {
         const [user, setUser] = useState(null);
         const [tab, setTab] = useState('search');
@@ -72,16 +80,9 @@
             try { setUser(JSON.parse(session)); } catch(e) { localStorage.removeItem('alvorada_session'); }
           }
           document.documentElement.classList.toggle('dark', darkMode);
-        }, []);
+        }, [darkMode]);
 
-        const toggleTheme = () => {
-          const newVal = !darkMode;
-          setDarkMode(newVal);
-          localStorage.setItem('alvorada_theme', newVal ? 'dark' : 'light');
-          document.documentElement.classList.toggle('dark', newVal);
-        };
-
-        if (!user) return <LoginScreen onLogin={(u) => setUser(u)} darkMode={darkMode} />;
+        if (!user) return <LoginScreen onLogin={(u) => setUser(u)} darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />;
 
         return (
           <div className="min-h-screen flex flex-col fade-in bg-gray-50 dark:bg-[#0b0e14]">
@@ -89,26 +90,36 @@
               <div className="flex items-center gap-4 lg:gap-10">
                 <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-8 lg:h-10 object-contain" />
                 <nav className="hidden lg:flex gap-2">
-                  <NavTab active={tab === 'search'} onClick={() => setTab('search')} icon={Search && <Search size={18}/>} label="Produtos" />
-                  {user.role === 'admin' && <NavTab active={tab === 'carnes'} onClick={() => setTab('carnes')} icon={FileText && <FileText size={18}/>} label="Carnês" />}
-                  {(user.role === 'admin' || user.role === 'editor') && <NavTab active={tab === 'upload'} onClick={() => setTab('upload')} icon={Upload && <Upload size={18}/>} label="Enviar" />}
+                  <TabBtn active={tab === 'search'} onClick={() => setTab('search')} icon={<Icons.Search />} label="Produtos" />
+                  {user.role === 'admin' && <TabBtn active={tab === 'carnes'} onClick={() => setTab('carnes')} icon={<Icons.FileText />} label="Carnês" />}
+                  {['admin', 'editor'].includes(user.role) && <TabBtn active={tab === 'upload'} onClick={() => setTab('upload')} icon={<Icons.Upload />} label="Enviar" />}
                 </nav>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={toggleTheme} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl transition hover:scale-105 active:scale-95">
-                  {darkMode ? (Sun && <Sun size={20} className="text-yellow-400"/>) : (Moon && <Moon size={20} className="text-[#0e75d7]"/>)}
+                <button onClick={() => setDarkMode(!darkMode)} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl transition hover:scale-105 active:scale-95 text-[#0e75d7]">
+                  {darkMode ? <Icons.Sun /> : <Icons.Moon />}
                 </button>
                 <button onClick={() => { setUser(null); localStorage.removeItem('alvorada_session'); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-950/30 rounded-2xl transition hover:scale-105 active:scale-95">
-                  {LogOut && <LogOut size={20}/>}
+                  <Icons.LogOut />
                 </button>
               </div>
             </header>
 
-            {/* Navegação Mobile */}
-            <nav className="lg:hidden flex border-b dark:border-gray-800 bg-white dark:bg-[#161b22] sticky top-20 z-40 overflow-x-auto no-scrollbar shadow-sm">
-              <MobileTab active={tab === 'search'} onClick={() => setTab('search')} icon={Search && <Search size={18}/>} label="Busca" />
-              {user.role === 'admin' && <MobileTab active={tab === 'carnes'} onClick={() => setTab('carnes')} icon={FileText && <FileText size={18}/>} label="Carnês" />}
-              {(user.role === 'admin' || user.role === 'editor') && <MobileTab active={tab === 'upload'} onClick={() => setTab('upload')} icon={Upload && <Upload size={18}/>} label="Enviar" />}
+            {/* Menu Mobile */}
+            <nav className="lg:hidden flex border-b dark:border-gray-800 bg-white dark:bg-[#161b22] sticky top-20 z-40 overflow-x-auto shadow-sm no-select no-scrollbar">
+              <button onClick={() => setTab('search')} className={`flex-1 py-4 flex flex-col items-center gap-1 text-[10px] font-black uppercase transition-all min-w-[80px] ${tab === 'search' ? 'text-[#0e75d7] border-b-2 border-[#0e75d7]' : 'text-gray-400'}`}>
+                <Icons.Search /> <span>Busca</span>
+              </button>
+              {user.role === 'admin' && (
+                <button onClick={() => setTab('carnes')} className={`flex-1 py-4 flex flex-col items-center gap-1 text-[10px] font-black uppercase transition-all min-w-[80px] ${tab === 'carnes' ? 'text-[#0e75d7] border-b-2 border-[#0e75d7]' : 'text-gray-400'}`}>
+                  <Icons.FileText /> <span>Carnês</span>
+                </button>
+              )}
+              {['admin', 'editor'].includes(user.role) && (
+                <button onClick={() => setTab('upload')} className={`flex-1 py-4 flex flex-col items-center gap-1 text-[10px] font-black uppercase transition-all min-w-[80px] ${tab === 'upload' ? 'text-[#0e75d7] border-b-2 border-[#0e75d7]' : 'text-gray-400'}`}>
+                  <Icons.Upload /> <span>Enviar</span>
+                </button>
+              )}
             </nav>
 
             <main className="flex-grow max-w-7xl mx-auto w-full p-4 lg:p-8">
@@ -118,14 +129,22 @@
             </main>
             
             <footer className="p-6 text-center text-[10px] font-black uppercase text-gray-400 bg-white dark:bg-[#161b22] border-t dark:border-gray-800">
-              Lojas Alvorada Sarandi &copy; {new Date().getFullYear()} • Sistema de Uso Interno
+              Perfect Comércio de Confecções Ltda &copy; {new Date().getFullYear()} • Sarandi-PR
             </footer>
           </div>
         );
       }
 
-      // --- LOGIN ---
-      function LoginScreen({ onLogin, darkMode }) {
+      function TabBtn({ active, onClick, icon, label }) {
+        return (
+          <button onClick={onClick} className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${active ? 'bg-blue-50 text-[#0e75d7] dark:bg-blue-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+            {icon} <span className="uppercase text-xs tracking-tighter">{label}</span>
+          </button>
+        );
+      }
+
+      // --- TELA DE LOGIN ---
+      function LoginScreen({ onLogin, darkMode, onToggleTheme }) {
         const [form, setForm] = useState({ u: '', p: '', c: '' });
         const [captcha, setCaptcha] = useState({ q: '', a: 0 });
         const [showPass, setShowPass] = useState(false);
@@ -141,9 +160,8 @@
 
         const submit = async (e) => {
           e.preventDefault();
-          if (parseInt(form.c) !== captcha.a) { setError('A soma está incorreta.'); genCap(); return; }
-          setLoading(true);
-          setError('');
+          if (parseInt(form.c) !== captcha.a) { setError('Conta errada. Tente novamente.'); genCap(); return; }
+          setLoading(true); setError('');
           try {
             const res = await fetch(`${API_BASE}/login`, {
               method: 'POST',
@@ -151,64 +169,43 @@
               body: JSON.stringify({ username: form.u, password: form.p })
             });
             const data = await res.json();
-            if (res.ok) onLogin(data);
-            else { setError(data.error || 'Credenciais inválidas'); genCap(); }
-          } catch (err) { setError('O servidor parece estar offline.'); }
+            if (res.ok) {
+              onLogin(data);
+              localStorage.setItem('alvorada_session', JSON.stringify(data));
+            } else { setError(data.error || 'Acesso negado'); genCap(); }
+          } catch (err) { setError('Servidor offline'); }
           setLoading(false);
         };
 
         return (
           <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100 dark:bg-[#0b0e14]">
-            <div className="w-full max-w-md bg-white dark:bg-[#161b22] p-8 rounded-[2.5rem] shadow-2xl border dark:border-gray-800 fade-in transition-all">
+            <div className="w-full max-w-md bg-white dark:bg-[#161b22] p-8 rounded-[2.5rem] shadow-2xl border dark:border-gray-800 fade-in">
               <div className="text-center mb-8">
-                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-14 mx-auto mb-4 object-contain transition-all" />
-                <h1 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Painel de Controle</h1>
-                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Lojas Alvorada</p>
+                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-14 mx-auto mb-4 object-contain" />
+                <h1 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Painel Interno</h1>
               </div>
               <form onSubmit={submit} className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1 mb-1 block">Usuário</label>
-                  <input type="text" placeholder="Seu nome de usuário" className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" value={form.u} onChange={e => setForm({...form, u: e.target.value})} required />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1 mb-1 block">Senha</label>
-                  <div className="relative">
-                    <input type={showPass ? "text" : "password"} placeholder="Sua senha secreta"  className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" value={form.p} onChange={e => setForm({...form, p: e.target.value})} required />
-                    <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-4 text-gray-400 hover:text-[#0e75d7]">
-                      {showPass ? (EyeOff && <EyeOff size={20}/>) : (Eye && <Eye size={20}/>)}
-                    </button>
-                  </div>
+                <input type="text" placeholder="Utilizador" className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" value={form.u} onChange={e => setForm({...form, u: e.target.value})} required />
+                <div className="relative">
+                  <input type={showPass ? "text" : "password"} placeholder="Senha"  className="w-full p-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" value={form.p} onChange={e => setForm({...form, p: e.target.value})} required />
+                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-4 text-gray-400 hover:text-[#0e75d7]">
+                    {showPass ? <Icons.EyeOff /> : <Icons.Eye />}
+                  </button>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30">
-                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-tighter">Resolva essa conta para provar que não é um robô:</p>
+                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-2 uppercase">Resolva essa conta para provar que não é um robô:</p>
                   <div className="flex items-center gap-3">
-                    <span className="font-black text-xl text-[#0e75d7] no-select">{captcha.q} =</span>
-                    <input type="number" placeholder="sua resposta aqui" className="w-full p-2 rounded-xl bg-white dark:bg-gray-800 dark:text-white border-2 border-blue-100 dark:border-blue-800 text-center font-bold focus:border-[#0e75d7] outline-none transition-all shadow-inner" value={form.c} onChange={e => setForm({...form, c: e.target.value})} required />
+                    <span className="font-black text-xl text-[#0e75d7]">{captcha.q} =</span>
+                    <input type="number" placeholder="sua resposta aqui" className="w-full p-2 rounded-xl bg-white dark:bg-gray-800 dark:text-white border-2 border-blue-100 dark:border-blue-800 text-center font-bold focus:border-[#0e75d7] outline-none" value={form.c} onChange={e => setForm({...form, c: e.target.value})} required />
                   </div>
                 </div>
-                {error && <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-500 text-xs font-bold rounded-xl flex items-center gap-2 animate-pulse"><AlertCircle size={14}/>{error}</div>}
-                <button disabled={loading} className="w-full bg-[#0e75d7] hover:bg-[#0c64b8] text-white font-black py-4 rounded-2xl transition shadow-xl shadow-blue-600/20 active:scale-95 disabled:opacity-50">
-                  {loading ? 'VERIFICANDO...' : 'ENTRAR NO SISTEMA'}
+                {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 dark:bg-red-950 p-2 rounded-lg">{error}</p>}
+                <button disabled={loading} className="w-full bg-[#0e75d7] hover:bg-[#0c64b8] text-white font-black py-4 rounded-2xl transition shadow-xl shadow-blue-600/20 active:scale-95">
+                  {loading ? 'CARREGANDO...' : 'ENTRAR NO SISTEMA'}
                 </button>
               </form>
             </div>
           </div>
-        );
-      }
-
-      function NavTab({ active, onClick, icon, label }) {
-        return (
-          <button onClick={onClick} className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold transition-all ${active ? 'bg-blue-50 text-[#0e75d7] dark:bg-blue-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-            {icon} <span className="uppercase text-xs tracking-tighter">{label}</span>
-          </button>
-        );
-      }
-
-      function MobileTab({ active, onClick, icon, label }) {
-        return (
-          <button onClick={onClick} className={`flex-1 py-4 flex flex-col items-center gap-1 text-[10px] font-black uppercase transition-all min-w-[80px] ${active ? 'text-[#0e75d7] border-b-2 border-[#0e75d7]' : 'text-gray-400'}`}>
-            {icon} <span>{label}</span>
-          </button>
         );
       }
 
@@ -234,21 +231,22 @@
               });
               const data = await res.json();
               if (Array.isArray(data)) {
-                const matches = data.filter(f => f.ObjectName.toLowerCase().includes(q.toLowerCase()));
+                const matches = data.filter(f => f.ObjectName && f.ObjectName.toLowerCase().includes(q.toLowerCase()));
                 all = [...all, ...matches.map(f => ({ ...f, fullPath: `${p}/${f.ObjectName}` }))];
               }
             }
-            setFiles(all);
+            setFiles(all || []);
             setPage(1);
-          } catch (e) { alert("A busca falhou. Verifique sua internet."); }
+          } catch (e) { console.error("Busca falhou"); }
           setLoading(false);
         };
 
         const filtered = useMemo(() => {
+          if (!Array.isArray(files)) return [];
           return files.filter(f => {
-            const ext = f.ObjectName.split('.').pop().toLowerCase();
-            const isImg = ['jpg','jpeg','png','webp','gif','bmp'].includes(ext);
-            const isVid = ['mp4','mov','webm','avi'].includes(ext);
+            const ext = (f.ObjectName || '').split('.').pop().toLowerCase();
+            const isImg = ['jpg','jpeg','png','webp','gif'].includes(ext);
+            const isVid = ['mp4','mov','webm'].includes(ext);
             if (filter === 'image') return isImg;
             if (filter === 'video') return isVid;
             return true;
@@ -258,22 +256,22 @@
         const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
         const downloadAll = async () => {
-          if (!confirm(`Deseja baixar os ${filtered.length} arquivos encontrados?`)) return;
+          if (!confirm(`Baixar os ${filtered.length} arquivos?`)) return;
           for (const f of filtered) {
             await downloadFile(f.ObjectName, f.fullPath.split('/').slice(0,-1).join('/'), user.token);
-            await new Promise(r => setTimeout(r, 600)); // Delay para evitar bloqueio do browser
+            await new Promise(r => setTimeout(r, 600));
           }
         };
 
         return (
           <div className="space-y-6 fade-in">
-            <div className="bg-white dark:bg-[#161b22] p-6 rounded-[2.5rem] shadow-xl border dark:border-gray-800 space-y-4 transition-all">
+            <div className="bg-white dark:bg-[#161b22] p-6 rounded-[2.5rem] shadow-xl border dark:border-gray-800 space-y-4">
               <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-grow relative">
-                  {Search && <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>}
-                  <input className="w-full pl-14 pr-4 py-4 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all" placeholder="SKU ou nome do produto..." value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && performSearch()} />
+                <div className="flex-grow relative text-[#0e75d7]">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 opacity-50"><Icons.Search /></div>
+                  <input className="w-full pl-14 pr-4 py-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border-none outline-none focus:ring-2 focus:ring-[#0e75d7]" placeholder="Digite o SKU ou nome do produto..." value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && performSearch()} />
                 </div>
-                <button onClick={performSearch} className="bg-[#0e75d7] text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-blue-600/20 active:scale-95 transition-all">LOCALIZAR</button>
+                <button onClick={performSearch} className="bg-[#0e75d7] text-white px-10 py-4 rounded-2xl font-black shadow-lg shadow-blue-600/20 active:scale-95 transition-all uppercase text-xs tracking-widest">BUSCAR</button>
               </div>
               
               <div className="flex flex-wrap justify-between items-center gap-4 pt-4 border-t dark:border-gray-800">
@@ -285,31 +283,27 @@
                   ))}
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                    <button onClick={() => setView('grid')} className={`p-2 rounded-lg transition-all ${view === 'grid' ? 'bg-white dark:bg-gray-700 text-[#0e75d7]' : 'text-gray-400'}`}>{LayoutGrid && <LayoutGrid size={18}/>}</button>
-                    <button onClick={() => setView('list')} className={`p-2 rounded-lg transition-all ${view === 'list' ? 'bg-white dark:bg-gray-700 text-[#0e75d7]' : 'text-gray-400'}`}>{List && <List size={18}/>}</button>
+                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl text-[#0e75d7]">
+                    <button onClick={() => setView('grid')} className={`p-2 rounded-lg transition-all ${view === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-400'}`}><Icons.Grid /></button>
+                    <button onClick={() => setView('list')} className={`p-2 rounded-lg transition-all ${view === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-400'}`}><Icons.List /></button>
                   </div>
-                  {filtered.length > 0 && <button onClick={downloadAll} className="text-[#0e75d7] font-black text-[10px] uppercase flex items-center gap-1 hover:underline transition-all"><Download size={14}/> Baixar Todos</button>}
+                  {filtered.length > 0 && <button onClick={downloadAll} className="text-[#0e75d7] font-black text-[10px] uppercase flex items-center gap-1 hover:underline"><Icons.Download /> Baixar Todos</button>}
                 </div>
               </div>
             </div>
 
-            {loading ? <div className="p-20 text-center animate-pulse"><div className="loader mx-auto"></div></div> : (
+            {loading ? <div className="p-20 text-center"><div className="loader mx-auto"></div></div> : (
               <>
                 <div className={view === 'grid' ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6" : "space-y-2"}>
-                  {paginated.map((f, i) => <Card key={i} file={f} view={view} user={user} />)}
+                  {paginated.map((f, i) => <FileCard key={i} file={f} view={view} user={user} />)}
                 </div>
 
                 {filtered.length > perPage && (
                   <div className="flex justify-center items-center gap-6 mt-12 bg-white dark:bg-[#161b22] p-4 rounded-3xl border dark:border-gray-800 shadow-lg w-fit mx-auto transition-all">
-                    <button disabled={page === 1} onClick={() => { setPage(p => p - 1); window.scrollTo({top:0, behavior:'smooth'}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7] transition-all">Anterior</button>
+                    <button disabled={page === 1} onClick={() => { setPage(p => p - 1); window.scrollTo({top:0}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7]">Anterior</button>
                     <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Página {page} de {Math.ceil(filtered.length / perPage)}</span>
-                    <button disabled={page >= Math.ceil(filtered.length / perPage)} onClick={() => { setPage(p => p + 1); window.scrollTo({top:0, behavior:'smooth'}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7] transition-all">Próxima</button>
+                    <button disabled={page >= Math.ceil(filtered.length / perPage)} onClick={() => { setPage(p => p + 1); window.scrollTo({top:0}); }} className="font-bold disabled:opacity-20 px-4 py-2 hover:text-[#0e75d7]">Próxima</button>
                   </div>
-                )}
-                
-                {filtered.length === 0 && q && (
-                   <div className="text-center py-20 opacity-30">Nenhum resultado encontrado.</div>
                 )}
               </>
             )}
@@ -317,19 +311,19 @@
         );
       }
 
-      function Card({ file, view, user }) {
+      function FileCard({ file, view, user }) {
         const [showDetail, setShowDetail] = useState(false);
-        const ext = file.ObjectName.split('.').pop().toLowerCase();
+        const ext = (file.ObjectName || '').split('.').pop().toLowerCase();
         const isImg = ['jpg','jpeg','png','webp','gif'].includes(ext);
-        const url = `${PUBLIC_CDN}/${file.fullPath.split('/').map(encodeURIComponent).join('/')}`;
-        const date = new Date(file.LastChanged).toLocaleDateString('pt-BR');
+        const url = `${PUBLIC_CDN}/${(file.fullPath || '').split('/').map(encodeURIComponent).join('/')}`;
+        const date = file.LastChanged ? new Date(file.LastChanged).toLocaleDateString('pt-BR') : '-';
 
         if (view === 'list') {
           return (
-            <div className="bg-white dark:bg-[#161b22] p-4 rounded-2xl border dark:border-gray-800 flex items-center justify-between gap-4 hover:border-[#0e75d7] transition-all group fade-in">
+            <div className="bg-white dark:bg-[#161b22] p-4 rounded-2xl border dark:border-gray-800 flex items-center justify-between gap-4 hover:border-[#0e75d7] transition group fade-in">
               <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-black flex-shrink-0 flex items-center justify-center shadow-inner">
-                  {isImg ? <img src={url} className="w-full h-full object-cover" /> : (Film && <Film className="text-white" size={20}/>)}
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-black flex-shrink-0 flex items-center justify-center">
+                  {isImg ? <img src={url} className="w-full h-full object-cover" /> : <div className="text-white"><Icons.FileText /></div>}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-black truncate dark:text-white uppercase tracking-tighter">{file.ObjectName}</p>
@@ -337,8 +331,8 @@
                 </div>
               </div>
               <div className="flex gap-2">
-                 <button onClick={() => window.open(url, '_blank')} className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-xl hover:text-[#0e75d7] transition-all">{Eye && <Eye size={16}/>}</button>
-                 <button onClick={() => downloadFile(file.ObjectName, file.fullPath.split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-[#0e75d7] text-white rounded-xl shadow-lg shadow-blue-600/20 active:scale-90 transition-all">{Download && <Download size={16}/>}</button>
+                 <button onClick={() => window.open(url, '_blank')} className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-[#0e75d7] transition-all"><Icons.Eye /></button>
+                 <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-[#0e75d7] text-white rounded-xl shadow-lg shadow-blue-600/20 active:scale-90 transition-all"><Icons.Download /></button>
               </div>
             </div>
           );
@@ -347,26 +341,26 @@
         return (
           <div className="bg-white dark:bg-[#161b22] rounded-[2rem] overflow-hidden shadow-sm border dark:border-gray-800 group hover:shadow-2xl hover:-translate-y-1 transition-all relative fade-in">
             <div className="aspect-square bg-gray-100 dark:bg-[#0d1117] flex items-center justify-center relative overflow-hidden">
-              {isImg ? <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" /> : (Film && <Film className="text-gray-400" size={32} />)}
-              <button onClick={() => setShowDetail(true)} className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full hover:bg-[#0e75d7] transition-all z-10">{Info && <Info size={14}/>}</button>
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 backdrop-blur-[2px]">
-                <button onClick={() => window.open(url, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] hover:text-white transition-all transform hover:scale-110 shadow-lg">{Eye && <Eye size={20}/>}</button>
-                <button onClick={() => downloadFile(file.ObjectName, file.fullPath.split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] hover:text-white transition-all transform hover:scale-110 shadow-lg">{Download && <Download size={20}/>}</button>
+              {isImg ? <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" /> : <div className="text-gray-400 opacity-20"><Icons.FileText /></div>}
+              <button onClick={() => setShowDetail(true)} className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full hover:bg-[#0e75d7] transition-all z-10"><Icons.Info /></button>
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3 backdrop-blur-[2px]">
+                <button onClick={() => window.open(url, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110"><Icons.Eye /></button>
+                <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110"><Icons.Download /></button>
               </div>
             </div>
             <div className="p-3 text-center">
               <p className="text-[10px] font-black truncate dark:text-gray-300 uppercase tracking-tighter" title={file.ObjectName}>{file.ObjectName}</p>
-              <button onClick={() => downloadFile(file.ObjectName, file.fullPath.split('/').slice(0,-1).join('/'), user.token)} className="mt-2 w-full flex items-center justify-center gap-1 py-2 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl text-[9px] font-black uppercase transition-all active:scale-95 shadow-sm">
-                 {Download && <Download size={12}/>} Baixar
+              <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="mt-2 w-full flex items-center justify-center gap-2 py-2 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl text-[9px] font-black uppercase transition-all active:scale-95 shadow-sm">
+                 <Icons.Download /> <span>Baixar</span>
               </button>
             </div>
             {showDetail && (
               <div className="absolute inset-0 bg-white/95 dark:bg-[#161b22]/98 p-6 flex flex-col justify-center animate-in zoom-in duration-200 z-20">
-                 <button onClick={() => setShowDetail(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-all">{X && <X size={20}/>}</button>
-                 <h3 className="text-[10px] font-black uppercase text-[#0e75d7] mb-3 tracking-widest border-b pb-1 text-center">Informações Técnicas</h3>
+                 <button onClick={() => setShowDetail(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-all font-black uppercase text-xs">✕ Fechar</button>
+                 <h3 className="text-[10px] font-black uppercase text-[#0e75d7] mb-3 tracking-widest border-b pb-1">Informações</h3>
                  <div className="text-[11px] font-bold text-gray-500 dark:text-gray-300 space-y-2 uppercase tracking-tighter">
-                    <p>Arquivo: <span className="text-black dark:text-white break-all">{file.ObjectName}</span></p>
-                    <p>Peso: <span className="text-black dark:text-white">{formatMB(file.Length)} MB</span></p>
+                    <p>Ficheiro: <span className="text-black dark:text-white break-all">{file.ObjectName}</span></p>
+                    <p>Tamanho: <span className="text-black dark:text-white">{formatMB(file.Length)} MB</span></p>
                     <p>Data: <span className="text-black dark:text-white">{date}</span></p>
                  </div>
               </div>
@@ -382,7 +376,7 @@
         const [loading, setLoading] = useState(false);
         const [filter, setFilter] = useState('');
 
-        const load = async (p) => {
+        const loadFolder = async (p) => {
           setLoading(true);
           try {
             const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(p)}`, {
@@ -391,23 +385,23 @@
             const data = await res.json();
             setItems(Array.isArray(data) ? data : []);
             setPath(p);
-          } catch (e) { alert("Não foi possível carregar esta pasta."); }
+          } catch (e) { console.error("Pasta erro"); }
           setLoading(false);
         };
 
-        useEffect(() => { load('Carnes'); }, []);
+        useEffect(() => { if(user) loadFolder('Carnes'); }, [user]);
 
-        const filtered = items.filter(it => it.ObjectName.toLowerCase().includes(filter.toLowerCase()));
+        const filtered = items.filter(it => (it.ObjectName || '').toLowerCase().includes(filter.toLowerCase()));
 
         return (
           <div className="space-y-4 fade-in">
-            <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
-              <div className="bg-white dark:bg-[#161b22] px-4 py-2 rounded-2xl border dark:border-gray-800 flex items-center gap-2 whitespace-nowrap shadow-sm transition-all">
-                {Folder && <Folder size={16} className="text-[#0e75d7]"/>}
+            <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide no-select">
+              <div className="bg-white dark:bg-[#161b22] px-4 py-2 rounded-2xl border dark:border-gray-800 flex items-center gap-2 whitespace-nowrap shadow-sm">
+                <Icons.Folder />
                 {path.split('/').map((p, i, arr) => (
                   <Fragment key={i}>
-                    <button onClick={() => load(arr.slice(0, i+1).join('/'))} className="text-[10px] font-black uppercase hover:text-[#0e75d7] transition-all tracking-widest">{p}</button>
-                    {i < arr.length - 1 && (ChevronRight && <ChevronRight size={12} className="opacity-20" />)}
+                    <button onClick={() => loadFolder(arr.slice(0, i+1).join('/'))} className="text-[10px] font-black uppercase hover:text-[#0e75d7] transition-all tracking-widest">{p}</button>
+                    {i < arr.length - 1 && <div className="opacity-30 text-[#0e75d7]"><Icons.ChevronRight /></div>}
                   </Fragment>
                 ))}
               </div>
@@ -415,30 +409,30 @@
 
             <div className="bg-white dark:bg-[#161b22] rounded-[2.5rem] border dark:border-gray-800 shadow-2xl overflow-hidden transition-all">
               <div className="p-6 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex flex-col sm:flex-row gap-4 justify-between items-center">
-                 <div className="relative w-full sm:max-w-xs">
-                   {Search && <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16}/>}
-                   <input className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0d1117] dark:text-white text-sm outline-none border-none shadow-inner" placeholder="Filtrar nesta pasta..." value={filter} onChange={e => setFilter(e.target.value)} />
+                 <div className="relative w-full sm:max-w-xs text-[#0e75d7]">
+                   <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50"><Icons.Search /></div>
+                   <input className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0d1117] dark:text-white text-sm outline-none border-none shadow-inner" placeholder="Procurar nesta pasta..." value={filter} onChange={e => setFilter(e.target.value)} />
                  </div>
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{filtered.length} arquivos/pastas</span>
+                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{filtered.length} Ficheiros</span>
               </div>
-              {loading ? <div className="p-32 text-center text-gray-400 font-black animate-pulse tracking-widest">CARREGANDO DADOS...</div> : (
+              {loading ? <div className="p-32 text-center text-gray-400 font-black animate-pulse">CARREGANDO...</div> : (
                 <div className="divide-y dark:divide-gray-800 max-h-[600px] overflow-y-auto custom-scroll">
-                  {filtered.length === 0 && <div className="p-20 text-center text-gray-400 text-[10px] font-black uppercase">Pasta Vazia.</div>}
+                  {filtered.length === 0 && <div className="p-20 text-center text-gray-400 uppercase text-xs font-bold tracking-widest">A pasta está vazia.</div>}
                   {filtered.map((it, i) => (
-                    <div key={i} className="p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group transition-all" onClick={() => it.IsDirectory && load(`${path}/${it.ObjectName}`)}>
+                    <div key={i} className="p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group transition-all" onClick={() => it.IsDirectory && loadFolder(`${path}/${it.ObjectName}`)}>
                       <div className="flex items-center gap-4">
-                        <div className={`p-4 rounded-2xl transition-all ${it.IsDirectory ? 'bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] group-hover:scale-105 shadow-sm' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-                          {it.IsDirectory ? (Folder && <Folder size={22}/>) : (FileText && <FileText size={22}/>)}
+                        <div className={`p-4 rounded-2xl transition-all ${it.IsDirectory ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm group-hover:scale-105' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                          {it.IsDirectory ? <Icons.Folder /> : <Icons.FileText />}
                         </div>
                         <div>
                           <p className="font-extrabold text-sm uppercase dark:text-gray-200 group-hover:text-[#0e75d7] transition-all tracking-tighter">{it.ObjectName}</p>
-                          {!it.IsDirectory && <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documento PDF • {formatMB(it.Length)} MB</p>}
+                          {!it.IsDirectory && <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documento • {formatMB(it.Length)} MB</p>}
                         </div>
                       </div>
                       {!it.IsDirectory && (
                         <div className="flex gap-2">
-                          <button onClick={(e) => { e.stopPropagation(); window.open(`${PUBLIC_CDN}/${path}/${it.ObjectName}`, '_blank'); }} className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-500 rounded-xl hover:text-[#0e75d7] transition-all">{Eye && <Eye size={18}/>}</button>
-                          <button onClick={(e) => { e.stopPropagation(); downloadFile(it.ObjectName, path, user.token); }} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl hover:bg-[#0e75d7] hover:text-white transition-all shadow-sm">{Download && <Download size={18}/>}</button>
+                          <button onClick={(e) => { e.stopPropagation(); window.open(`${PUBLIC_CDN}/${path}/${it.ObjectName}`, '_blank'); }} className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-[#0e75d7] transition-all"><Icons.Eye /></button>
+                          <button onClick={(e) => { e.stopPropagation(); downloadFile(it.ObjectName, path, user.token); }} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl hover:bg-[#0e75d7] hover:text-white transition-all shadow-sm"><Icons.Download /></button>
                         </div>
                       )}
                     </div>
@@ -457,10 +451,11 @@
         const [progress, setProgress] = useState({}); 
         const [uploading, setUploading] = useState(false);
 
-        const start = async () => {
+        const startUpload = async () => {
           if (!files.length) return;
           setUploading(true);
           for (let i = 0; i < files.length; i++) {
+            if (progress[i] === 'done') continue;
             setProgress(prev => ({ ...prev, [i]: 'loading' }));
             const form = new FormData();
             form.append('file', files[i]);
@@ -481,68 +476,60 @@
         return (
           <div className="max-w-2xl mx-auto space-y-6 fade-in">
             <div className="bg-white dark:bg-[#161b22] p-8 sm:p-12 rounded-[3rem] shadow-2xl border dark:border-gray-800 transition-all">
-              <div className="flex items-center gap-5 mb-10 border-b dark:border-gray-800 pb-6">
-                <div className="p-5 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-[1.5rem] shadow-lg">
-                   {Upload && <Upload size={32}/>}
-                </div>
+              <div className="flex items-center gap-5 mb-10 border-b dark:border-gray-800 pb-6 text-[#0e75d7]">
+                <div className="p-5 bg-blue-50 dark:bg-blue-900/20 rounded-[1.5rem] shadow-lg"><Icons.Upload /></div>
                 <div>
-                   <h2 className="text-2xl font-black uppercase tracking-tighter">Central de Envio</h2>
-                   <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Painel Administrativo Bunny</p>
+                   <h2 className="text-2xl font-black uppercase tracking-tighter dark:text-white text-gray-900">Central de Envio</h2>
+                   <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Multi-upload Ativo</p>
                 </div>
               </div>
 
               <div className="space-y-6">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1 block mb-2 tracking-widest">Selecionar Pasta Destino</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest block">Pasta de Destino</label>
                   <select className="w-full p-5 rounded-2xl bg-gray-100 dark:bg-[#0d1117] dark:text-white border-none outline-none font-bold text-sm focus:ring-2 focus:ring-[#0e75d7] transition-all cursor-pointer shadow-inner" value={target} onChange={e => setTarget(e.target.value)}>
-                    <option value="Fprodutos">Fotos de Produtos (Fprodutos)</option>
+                    <option value="Fprodutos">Fotos de Produtos</option>
                     <option value="VideosProdutos/Videos YT">Vídeos Youtube</option>
                     <option value="VideosProdutos/Videos ML">Vídeos Mercado Livre</option>
                   </select>
                 </div>
 
-                <div className="border-4 border-dashed border-gray-100 dark:border-gray-800 p-12 rounded-[2.5rem] text-center hover:border-[#0e75d7] transition-all cursor-pointer relative group bg-gray-50/50 dark:bg-gray-800/10">
-                  <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => {
-                    setFiles(Array.from(e.target.files));
-                    setProgress({});
-                  }} />
+                <div className="border-4 border-dashed border-gray-100 dark:border-gray-800 p-12 rounded-[2.5rem] text-center hover:border-[#0e75d7] transition-all cursor-pointer relative group bg-gray-50/50 dark:bg-gray-800/10 text-[#0e75d7]">
+                  <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => { setFiles(Array.from(e.target.files)); setProgress({}); }} />
                   {files.length > 0 ? (
-                    <div className="flex flex-col items-center animate-in zoom-in">
-                      {Files && <Files className="text-[#0e75d7] mb-3" size={48} />}
-                      <p className="font-black text-sm uppercase">{files.length} arquivo(s) prontos</p>
-                      <p className="text-[9px] text-gray-400 font-bold uppercase mt-2">Clique para re-selecionar</p>
+                    <div className="flex flex-col items-center animate-in zoom-in text-[#0e75d7] font-black">
+                      <div className="mb-2"><Icons.Grid /></div>
+                      <p className="text-sm uppercase tracking-tighter">{files.length} Ficheiro(s) Prontos</p>
                     </div>
                   ) : (
                     <div className="opacity-30 group-hover:opacity-100 transition-all transform group-hover:scale-105">
-                      {Image && <Image className="mx-auto mb-4" size={56} />}
-                      <p className="font-black text-xs uppercase tracking-widest text-[#0e75d7]">Arraste múltiplos arquivos aqui</p>
-                      <p className="text-[9px] font-bold mt-2 uppercase">PNG, JPG, MP4, PDF suportados</p>
+                      <div className="mx-auto mb-4 flex justify-center"><Icons.Grid /></div>
+                      <p className="font-black text-xs uppercase tracking-widest">Arraste múltiplos arquivos aqui</p>
                     </div>
                   )}
                 </div>
 
                 {files.length > 0 && (
-                  <div className="space-y-3 bg-gray-50 dark:bg-[#0d1117] p-6 rounded-[2rem] max-h-[300px] overflow-y-auto custom-scroll shadow-inner transition-all border dark:border-gray-800">
-                    {uploading && <div className="flex items-center gap-2 text-orange-500 font-black text-[10px] uppercase mb-4 animate-pulse"><AlertCircle size={14}/> ATENÇÃO: NÃO SAIA DESTA TÁGINA ATÉ CONCLUIR</div>}
+                  <div className="space-y-3 bg-gray-50 dark:bg-[#0d1117] p-6 rounded-[2rem] max-h-[300px] overflow-y-auto custom-scroll shadow-inner border dark:border-gray-800 transition-all">
+                    {uploading && <div className="text-orange-500 font-black text-[10px] uppercase mb-4 animate-pulse">Não saia desta página até o fim!</div>}
                     {files.map((f, i) => (
                       <div key={i} className="space-y-1">
                         <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
                           <span className="truncate max-w-[70%] dark:text-gray-300">{f.name}</span>
-                          <span className={progress[i] === 'done' ? 'text-green-500 font-bold' : progress[i] === 'error' ? 'text-red-500' : 'text-[#0e75d7]'}>
-                            {progress[i] === 'loading' ? 'CARREGANDO...' : progress[i] === 'done' ? 'OK' : progress[i] === 'error' ? 'FALHOU' : 'PENDENTE'}
+                          <span className={progress[i] === 'done' ? 'text-green-500' : progress[i] === 'error' ? 'text-red-500' : 'text-[#0e75d7]'}>
+                            {progress[i] === 'loading' ? 'CARREGANDO...' : progress[i] === 'done' ? 'OK' : progress[i] === 'error' ? 'ERRO' : 'PENDENTE'}
                           </span>
                         </div>
                         <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner">
-                          <div className={`h-full transition-all duration-700 ease-out ${progress[i] === 'done' ? 'bg-green-500' : progress[i] === 'error' ? 'bg-red-500' : progress[i] === 'loading' ? 'bg-[#0e75d7]' : 'bg-transparent'}`} style={{ width: progress[i] === 'done' ? '100%' : progress[i] === 'loading' ? '70%' : '0%' }} />
+                          <div className={`h-full transition-all duration-700 ${progress[i] === 'done' ? 'bg-green-500' : progress[i] === 'error' ? 'bg-red-500' : progress[i] === 'loading' ? 'bg-[#0e75d7]' : 'bg-transparent'}`} style={{ width: progress[i] === 'done' ? '100%' : progress[i] === 'loading' ? '70%' : '0%' }} />
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <button disabled={!files.length || uploading} onClick={start} className="w-full bg-[#0e75d7] hover:bg-[#0c64b8] text-white font-black py-5 rounded-3xl transition shadow-xl shadow-blue-600/10 disabled:opacity-20 active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
-                  {uploading ? (Loader2 && <Loader2 className="animate-spin" size={20}/>) : (Upload && <Upload size={20}/>)}
-                  {uploading ? 'ENVIANDO ARQUIVOS...' : 'INICIAR UPLOAD AGORA'}
+                <button disabled={!files.length || uploading} onClick={startUpload} className="w-full bg-[#0e75d7] hover:bg-[#0c64b8] text-white font-black py-5 rounded-3xl transition shadow-xl shadow-blue-600/10 disabled:opacity-20 active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                   <span>{uploading ? 'ENVIANDO ARQUIVOS...' : 'INICIAR UPLOAD AGORA'}</span>
                 </button>
               </div>
             </div>
@@ -552,7 +539,7 @@
 
       const root = ReactDOM.createRoot(document.getElementById('root'));
       root.render(<App />);
-    }
+    })();
   </script>
 </body>
 </html>
