@@ -11,495 +11,85 @@ import {
   Download, 
   Image as ImageIcon,
   Film,
-  Lock,
   CheckCircle,
   AlertCircle,
-  XCircle
+  Loader2
 } from 'lucide-react';
 
-// --- CONFIGURAÇÃO ---
 const API_BASE = 'https://bunny-proxy.onrender.com/api'; 
 const PUBLIC_CDN = 'https://lojasalvorada.b-cdn.net';
 
-// --- UTILITÁRIOS ---
-
-const encodeURIComponentPath = (path) => {
-  if (!path) return '';
-  return path.split('/').map(encodeURIComponent).join('/');
-};
-
-// --- COMPONENTES AUXILIARES ---
-
-const NavButton = ({ active, onClick, icon, label }) => (
-  <button 
-    onClick={onClick} 
-    className={`px-5 py-2.5 rounded-2xl flex items-center gap-2 font-black text-sm transition-all ${active ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
-  >
-    {icon} {label}
-  </button>
-);
-
-const MobileTab = ({ active, onClick, label }) => (
-  <button 
-    onClick={onClick} 
-    className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-400'}`}
-  >
-    {label}
-  </button>
-);
-
-const Pagination = ({ current, total, onChange }) => (
-  <div className="flex justify-center items-center gap-6 bg-white dark:bg-gray-900 p-4 rounded-3xl border dark:border-gray-800 shadow-xl w-fit mx-auto mt-10">
-     <button disabled={current === 1} onClick={() => onChange(current - 1)} className="font-bold p-2 disabled:opacity-20 transition-opacity">Anterior</button>
-     <span className="text-xs font-black uppercase tracking-widest text-gray-400">Página {current} de {total}</span>
-     <button disabled={current === total} onClick={() => onChange(current + 1)} className="font-bold p-2 disabled:opacity-20 transition-opacity">Próxima</button>
-  </div>
-);
-
-// --- ABAS ---
-
-const SearchTab = ({ user, showMessage }) => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 12;
-
-  const handleSearch = async () => {
-    if (!query) return;
-    setLoading(true);
-    let allMatches = [];
-    const paths = ['Fprodutos', 'VideosProdutos/Videos YT', 'VideosProdutos/Videos ML'];
-    
-    try {
-      for (const path of paths) {
-        const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(path)}`, {
-          headers: { 'Authorization': `Bearer ${user?.token}` }
-        });
-        
-        if (!res.ok) continue;
-
-        const data = await res.json();
-        
-        if (Array.isArray(data)) {
-          const matches = data.filter(f => f.ObjectName?.toLowerCase().includes(query.toLowerCase()));
-          allMatches = [...allMatches, ...matches.map(f => ({ ...f, fullPath: `${path}/${f.ObjectName}` }))];
-        }
-      }
-      setResults(allMatches);
-      setPage(1);
-    } catch (e) {
-      console.error("Erro na busca:", e);
-      showMessage("Erro", "Ocorreu um erro ao realizar a busca.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const paginatedResults = results.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-
-  const downloadFileInternal = async (path) => {
-    try {
-      const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path)}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      if (!res.ok) throw new Error('Falha no download');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = path.split('/').pop();
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (e) { 
-      showMessage("Erro", "Falha ao realizar o download.", "error");
-    }
-  };
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="bg-white dark:bg-gray-900 p-6 rounded-[2.5rem] shadow-xl border dark:border-gray-800 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-grow">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
-          <input 
-            className="w-full pl-14 pr-5 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border-none outline-none focus:ring-2 focus:ring-red-500 dark:text-white" 
-            placeholder="Digite o código SKU ou nome..." 
-            value={query}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            onChange={e => setQuery(e.target.value)}
-          />
-        </div>
-        <button onClick={handleSearch} className="bg-red-600 hover:bg-red-700 text-white px-10 py-4 rounded-2xl font-black transition-all shadow-lg shadow-red-600/20 active:scale-95">
-          {loading ? 'BUSCANDO...' : 'BUSCAR'}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {paginatedResults.map((file, idx) => {
-          const ext = file.ObjectName?.split('.').pop().toLowerCase();
-          const isVideo = ['mp4', 'mov', 'webm'].includes(ext);
-          const mediaUrl = `${PUBLIC_CDN}/${encodeURIComponentPath(file.fullPath)}`;
-
-          return (
-            <div key={idx} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800 group hover:shadow-2xl transition-all duration-500 relative">
-              <div className="aspect-square bg-gray-50 dark:bg-gray-950 flex items-center justify-center relative overflow-hidden">
-                {isVideo ? (
-                  <Film className="text-gray-300 group-hover:text-red-600 transition-colors" size={40} />
-                ) : (
-                  <img src={mediaUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-125" loading="lazy" alt={file.ObjectName} />
-                )}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3 backdrop-blur-sm">
-                   <button onClick={() => window.open(mediaUrl, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-all"><ImageIcon size={20}/></button>
-                   <button onClick={() => downloadFileInternal(file.fullPath)} className="p-3 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition-all"><Download size={20}/></button>
-                </div>
-              </div>
-              <div className="p-3">
-                <p className="text-[10px] font-bold truncate dark:text-gray-300 uppercase tracking-tighter" title={file.ObjectName}>{file.ObjectName}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {results.length > itemsPerPage && (
-        <Pagination current={page} total={Math.ceil(results.length / itemsPerPage)} onChange={setPage} />
-      )}
-      
-      {!loading && results.length === 0 && query && (
-        <div className="text-center py-20 text-gray-500">
-           Nenhum arquivo encontrado para esta pesquisa.
-        </div>
-      )}
-    </div>
-  );
-};
-
-const CarnesTab = ({ user, showMessage }) => {
-  const [currentPath, setCurrentPath] = useState('Carnes');
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchFolder = async (path) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(path)}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      if (!res.ok) throw new Error('Erro na resposta');
-      const data = await res.json();
-      setItems(Array.isArray(data) ? data : []);
-      setCurrentPath(path);
-    } catch (e) {
-      console.error("Erro ao carregar pasta:", e);
-      showMessage("Erro", "Erro ao carregar a pasta de Carnês.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { 
-    if (user && user.role === 'admin') {
-      fetchFolder('Carnes');
-    }
-  }, [user]);
-
-  const downloadFileInternal = async (path) => {
-    try {
-      const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path)}`, {
-        headers: { 'Authorization': `Bearer ${user?.token}` }
-      });
-      if (!res.ok) throw new Error('Falha no download');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = path.split('/').pop();
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (e) { 
-      showMessage("Erro", "Falha ao realizar o download.", "error");
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide text-sm">
-        <Folder size={18} className="text-red-500 flex-shrink-0"/>
-        {currentPath.split('/').map((p, i, arr) => (
-          <React.Fragment key={i}>
-            <button 
-              className="font-bold hover:text-red-600 whitespace-nowrap transition"
-              onClick={() => fetchFolder(arr.slice(0, i + 1).join('/'))}
-            >{p}</button>
-            {i < arr.length - 1 && <ChevronRight size={14} className="opacity-30"/>}
-          </React.Fragment>
-        ))}
-      </div>
-
-      <div className="bg-white dark:bg-gray-900 rounded-[2rem] border dark:border-gray-800 shadow-xl overflow-hidden">
-        {loading ? (
-          <div className="p-20 text-center text-gray-400 font-bold animate-pulse">Carregando arquivos...</div>
-        ) : (
-          <div className="divide-y dark:divide-gray-800">
-            {items.length === 0 && (
-              <div className="p-10 text-center text-gray-500">Pasta vazia.</div>
-            )}
-            {items.map((item, i) => (
-              <div 
-                key={i} 
-                className="p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition group"
-                onClick={() => item.IsDirectory ? fetchFolder(`${currentPath}/${item.ObjectName}`) : null}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${item.IsDirectory ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/20'}`}>
-                    {item.IsDirectory ? <Folder size={22}/> : <FileText size={22}/>}
-                  </div>
-                  <div>
-                    <p className="font-bold group-hover:text-red-600 transition">{item.ObjectName}</p>
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{item.IsDirectory ? 'Pasta' : `${(item.Length/1024).toFixed(0)} KB`}</p>
-                  </div>
-                </div>
-                {!item.IsDirectory && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); downloadFileInternal(`${currentPath}/${item.ObjectName}`); }} 
-                    className="p-3 bg-gray-100 dark:bg-gray-800 hover:bg-red-600 hover:text-white rounded-xl transition"
-                  >
-                    <Download size={18} />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const UploadTab = ({ user, showMessage }) => {
-  const [file, setFile] = useState(null);
-  const [folder, setFolder] = useState('Fprodutos');
-  const [status, setStatus] = useState({ type: '', msg: '' });
-  const [uploading, setUploading] = useState(false);
-
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!file) return;
-    setUploading(true);
-    setStatus({ type: '', msg: '' });
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('path', `${folder}/${file.name}`);
-
-    try {
-      const res = await fetch(`${API_BASE}/upload`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${user?.token}` },
-        body: formData
-      });
-      if (res.ok) {
-        setStatus({ type: 'success', msg: 'Arquivo enviado com sucesso para a Bunny.net!' });
-        setFile(null);
-      } else {
-        const data = await res.json();
-        setStatus({ type: 'error', msg: data.error || 'Erro ao processar o upload.' });
-      }
-    } catch (e) {
-      setStatus({ type: 'error', msg: 'Falha na conexão com o servidor.' });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto bg-white dark:bg-gray-900 p-8 sm:p-12 rounded-[3rem] shadow-2xl border dark:border-gray-800 animate-in fade-in duration-500">
-      <div className="flex items-center gap-5 mb-10">
-         <div className="p-5 bg-red-600 text-white rounded-[1.5rem] shadow-xl shadow-red-600/30">
-           <Upload size={32}/>
-         </div>
-         <div>
-           <h2 className="text-2xl font-black">Central de Upload</h2>
-           <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Produtos e Vídeos</p>
-         </div>
-      </div>
-
-      <form onSubmit={handleUpload} className="space-y-6">
-        <div>
-          <label className="block text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 ml-1">Pasta de Destino</label>
-          <select 
-            className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border dark:border-gray-700 outline-none font-bold"
-            value={folder}
-            onChange={e => setFolder(e.target.value)}
-          >
-            <option value="Fprodutos">Fotos de Produtos (Fprodutos)</option>
-            <option value="VideosProdutos/Videos YT">Vídeos YouTube</option>
-            <option value="VideosProdutos/Videos ML">Vídeos Mercado Livre</option>
-          </select>
-        </div>
-        
-        <div className="border-4 border-dashed border-gray-100 dark:border-gray-800 rounded-[2rem] p-10 text-center hover:border-red-500 transition-all cursor-pointer relative group bg-gray-50/50 dark:bg-gray-800/20">
-          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFile(e.target.files[0])} />
-          {file ? (
-            <div className="animate-in zoom-in duration-300">
-               <CheckCircle className="mx-auto mb-3 text-green-500" size={48}/>
-               <p className="font-black text-lg break-all">{file.name}</p>
-            </div>
-          ) : (
-            <div className="text-gray-400 group-hover:text-red-500 transition-colors">
-              <ImageIcon className="mx-auto mb-3 opacity-20" size={64}/>
-              <p className="font-bold">Clique ou arraste o arquivo aqui</p>
-              <p className="text-[10px] font-black uppercase tracking-tighter mt-1">Imagens e Vídeos suportados</p>
-            </div>
-          )}
-        </div>
-
-        {status.msg && (
-          <div className={`p-4 rounded-2xl flex items-center gap-3 font-bold text-sm ${status.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/20' : 'bg-red-50 text-red-700 dark:bg-red-900/20'}`}>
-            {status.type === 'success' ? <CheckCircle size={20}/> : <AlertCircle size={20}/>}
-            {status.msg}
-          </div>
-        )}
-
-        <button disabled={!file || uploading} className="w-full bg-black dark:bg-red-600 text-white font-black py-5 rounded-2xl transition-all shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-30">
-          {uploading ? 'ENVIANDO...' : 'INICIAR UPLOAD'}
-        </button>
-      </form>
-    </div>
-  );
-};
-
-// --- COMPONENTE PRINCIPAL ---
-
-const App = () => {
+export default function App() {
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('search'); 
+  const [tab, setTab] = useState('search');
   const [darkMode, setDarkMode] = useState(true);
-  
-  // Estado de Autenticação
-  const [captcha, setCaptcha] = useState({ question: '', answer: 0 });
-  const [loginForm, setLoginForm] = useState({ username: '', password: '', captcha: '' });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Estado para Mensagens Customizadas (Substitui Alert)
-  const [message, setMessage] = useState(null);
-
-  const showMessage = (title, text, type = 'info') => {
-    setMessage({ title, text, type });
-    setTimeout(() => setMessage(null), 5000);
-  };
+  const [error, setError] = useState('');
+  
+  // Login State
+  const [captcha, setCaptcha] = useState({ q: '', a: 0 });
+  const [form, setForm] = useState({ user: '', pass: '', cap: '' });
 
   useEffect(() => {
     const session = localStorage.getItem('alvorada_session');
-    if (session) {
-      try {
-        const parsed = JSON.parse(session);
-        if (parsed && parsed.token) {
-          setUser(parsed);
-        }
-      } catch (e) {
-        localStorage.removeItem('alvorada_session');
-      }
-    }
-    generateCaptcha();
+    if (session) setUser(JSON.parse(session));
+    genCaptcha();
   }, []);
 
-  const generateCaptcha = () => {
+  const genCaptcha = () => {
     const n1 = Math.floor(Math.random() * 9) + 1;
     const n2 = Math.floor(Math.random() * 9) + 1;
-    setCaptcha({ question: `${n1} + ${n2}`, answer: n1 + n2 });
+    setCaptcha({ q: `${n1} + ${n2}`, a: n1 + n2 });
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (parseInt(loginForm.captcha) !== captcha.answer) {
-      setError('Verificação de segurança incorreta.');
-      generateCaptcha();
+    if (parseInt(form.cap) !== captcha.a) {
+      setError('Captcha incorreto');
+      genCaptcha();
       return;
     }
-
     setLoading(true);
-    setError('');
     try {
       const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginForm.username, password: loginForm.password })
+        body: JSON.stringify({ username: form.user, password: form.pass })
       });
-      
       const data = await res.json();
-      
-      if (res.ok && data.token) {
+      if (res.ok) {
         setUser(data);
         localStorage.setItem('alvorada_session', JSON.stringify(data));
       } else {
-        setError(data.error || 'Erro ao autenticar. Verifique os dados.');
-        generateCaptcha();
+        setError(data.error);
+        genCaptcha();
       }
     } catch (err) {
-      setError('Erro ao conectar com o servidor. Tente novamente mais tarde.');
-      generateCaptcha();
+      setError('Erro ao conectar ao servidor');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('alvorada_session');
-    setActiveTab('search');
   };
 
   if (!user) {
     return (
       <div className={darkMode ? 'dark' : ''}>
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-950 flex items-center justify-center p-4 transition-colors duration-300">
-          <div className="w-full max-w-md bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 animate-in zoom-in duration-300">
-            <div className="text-center mb-8">
-              <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png" className="h-16 mx-auto mb-4" alt="Alvorada" />
-              <h2 className="text-2xl font-black dark:text-white tracking-tight">Sistema Alvorada</h2>
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Acesso Restrito</p>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4 transition-colors">
+          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-10 border dark:border-gray-800">
+            <div className="text-center mb-10">
+              <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png" className="h-16 mx-auto mb-4" alt="Loja Alvorada" />
+              <h1 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Painel Interno</h1>
             </div>
-
             <form onSubmit={handleLogin} className="space-y-4">
-              <input 
-                type="text" 
-                placeholder="Usuário" 
-                className="w-full p-4 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-red-500 transition-all"
-                value={loginForm.username}
-                onChange={e => setLoginForm({...loginForm, username: e.target.value})}
-                required
-              />
-              <input 
-                type="password" 
-                placeholder="Senha" 
-                className="w-full p-4 rounded-2xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white outline-none focus:ring-2 focus:ring-red-500 transition-all"
-                value={loginForm.password}
-                onChange={e => setLoginForm({...loginForm, password: e.target.value})}
-                required
-              />
-              
-              <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-2xl border dark:border-gray-700">
-                <span className="bg-red-600 text-white px-3 py-1 rounded-lg font-bold select-none">{captcha.question} =</span>
-                <input 
-                  type="number" 
-                  placeholder="?" 
-                  className="w-full bg-transparent dark:text-white outline-none font-bold text-lg"
-                  value={loginForm.captcha}
-                  onChange={e => setLoginForm({...loginForm, captcha: e.target.value})}
-                  required
-                />
+              <input type="text" placeholder="Usuário" className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 dark:text-white border-none outline-none focus:ring-2 focus:ring-red-500" value={form.user} onChange={e => setForm({...form, user: e.target.value})} required />
+              <input type="password" placeholder="Senha" className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 dark:text-white border-none outline-none focus:ring-2 focus:ring-red-500" value={form.pass} onChange={e => setForm({...form, pass: e.target.value})} required />
+              <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-900/30">
+                <span className="font-black text-red-600 dark:text-red-400">{captcha.q} =</span>
+                <input type="number" placeholder="?" className="bg-transparent border-none outline-none w-full dark:text-white font-bold" value={form.cap} onChange={e => setForm({...form, cap: e.target.value})} required />
               </div>
-
-              {error && <div className="text-red-500 text-sm font-bold flex items-center gap-2 bg-red-50 dark:bg-red-900/20 p-3 rounded-xl"><AlertCircle size={16}/> {error}</div>}
-
-              <button disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-red-600/30 active:scale-95 disabled:opacity-50">
-                {loading ? 'VERIFICANDO...' : 'ENTRAR NO SISTEMA'}
+              {error && <p className="text-red-500 text-xs font-bold px-2">{error}</p>}
+              <button disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-red-600/20 active:scale-95">
+                {loading ? <Loader2 className="animate-spin mx-auto"/> : 'ENTRAR'}
               </button>
             </form>
           </div>
@@ -510,66 +100,239 @@ const App = () => {
 
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 flex flex-col">
-        
-        {/* Navbar */}
-        <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
+        {/* Header */}
+        <header className="bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-            <div className="flex items-center gap-4 sm:gap-10">
-               <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" className="h-10 hidden dark:block" alt="Logo" />
-               <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png" className="h-10 dark:hidden" alt="Logo" />
-               
-               <div className="hidden lg:flex items-center gap-2">
-                 <NavButton active={activeTab === 'search'} onClick={() => setActiveTab('search')} icon={<Search size={18}/>} label="Produtos" />
-                 {user?.role === 'admin' && <NavButton active={activeTab === 'carnes'} onClick={() => setActiveTab('carnes')} icon={<FileText size={18}/>} label="Carnês" />}
-                 {(user?.role === 'admin' || user?.role === 'editor') && <NavButton active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} icon={<Upload size={18}/>} label="Upload" />}
-               </div>
+            <div className="flex items-center gap-10">
+              <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png" className="h-10 dark:hidden" />
+              <img src="https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" className="h-10 hidden dark:block" />
+              <nav className="hidden md:flex gap-4">
+                <TabBtn active={tab === 'search'} onClick={() => setTab('search')} icon={<Search size={18}/>} label="Consultar" />
+                {user.role === 'admin' && <TabBtn active={tab === 'carnes'} onClick={() => setTab('carnes')} icon={<FileText size={18}/>} label="Carnês" />}
+                {['admin', 'editor'].includes(user.role) && <TabBtn active={tab === 'upload'} onClick={() => setTab('upload')} icon={<Upload size={18}/>} label="Enviar" />}
+              </nav>
             </div>
-
             <div className="flex items-center gap-3">
-              <span className="hidden sm:inline text-xs font-black uppercase text-gray-400 tracking-widest">{user?.name}</span>
-              <button onClick={() => setDarkMode(!darkMode)} className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl transition focus:outline-none">
-                {darkMode ? <Sun size={20} className="text-yellow-400"/> : <Moon size={20} className="text-indigo-600"/>}
+              <span className="hidden sm:inline text-xs font-black text-gray-400 uppercase">{user.name}</span>
+              <button onClick={() => setDarkMode(!darkMode)} className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition">
+                {darkMode ? <Sun size={20}/> : <Moon size={20}/>}
               </button>
-              <button onClick={handleLogout} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition focus:outline-none">
+              <button onClick={() => { setUser(null); localStorage.removeItem('alvorada_session'); }} className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-2xl transition">
                 <LogOut size={20}/>
               </button>
             </div>
           </div>
-          
-          {/* Mobile Navigation */}
-          <div className="lg:hidden flex border-t dark:border-gray-800 bg-white dark:bg-gray-900">
-             <MobileTab active={activeTab === 'search'} onClick={() => setActiveTab('search')} label="Produtos" />
-             {user?.role === 'admin' && <MobileTab active={activeTab === 'carnes'} onClick={() => setActiveTab('carnes')} label="Carnês" />}
-             {(user?.role === 'admin' || user?.role === 'editor') && <MobileTab active={activeTab === 'upload'} onClick={() => setActiveTab('upload')} label="Upload" />}
-          </div>
-        </nav>
+        </header>
 
-        {/* Mensagem Toast */}
-        {message && (
-          <div className="fixed top-24 right-6 z-[60] animate-in slide-in-from-right duration-300">
-            <div className={`p-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${message.type === 'error' ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-950/50 dark:border-red-900' : 'bg-green-50 text-green-700 border-green-100 dark:bg-green-950/50 dark:border-green-900'}`}>
-              {message.type === 'error' ? <XCircle size={20}/> : <CheckCircle size={20}/>}
-              <div>
-                <p className="font-bold text-sm">{message.title}</p>
-                <p className="text-xs">{message.text}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <main className="flex-grow max-w-7xl mx-auto p-6 sm:p-10 w-full">
-           {activeTab === 'search' && <SearchTab user={user} showMessage={showMessage} />}
-           {activeTab === 'carnes' && <CarnesTab user={user} showMessage={showMessage} />}
-           {activeTab === 'upload' && <UploadTab user={user} showMessage={showMessage} />}
+        <main className="max-w-7xl mx-auto p-6 lg:p-10">
+          {tab === 'search' && <SearchContent user={user} />}
+          {tab === 'carnes' && <CarnesContent user={user} />}
+          {tab === 'upload' && <UploadContent user={user} />}
         </main>
-
-        <footer className="p-8 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">
-           &copy; {new Date().getFullYear()} Lojas Alvorada • Sistema de Uso Interno
-        </footer>
       </div>
     </div>
   );
-};
+}
 
-export default App;
+// --- SUB-COMPONENTS ---
+
+function TabBtn({ active, onClick, icon, label }) {
+  return (
+    <button onClick={onClick} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition ${active ? 'bg-red-600 text-white shadow-lg shadow-red-600/30' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+      {icon} <span>{label}</span>
+    </button>
+  );
+}
+
+function SearchContent({ user }) {
+  const [q, setQ] = useState('');
+  const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const perPage = 12;
+
+  const search = async () => {
+    if (!q) return;
+    setLoading(true);
+    let all = [];
+    const paths = ['Fprodutos', 'VideosProdutos/Videos YT', 'VideosProdutos/Videos ML'];
+    try {
+      for (const p of paths) {
+        const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(p)}`, {
+          headers: { 'Authorization': `Bearer ${user.token}` }
+        });
+        const data = await res.json();
+        const matches = Array.isArray(data) ? data.filter(f => f.ObjectName.toLowerCase().includes(q.toLowerCase())) : [];
+        all = [...all, ...matches.map(f => ({ ...f, fullPath: `${p}/${f.ObjectName}` }))];
+      }
+      setFiles(all);
+      setPage(1);
+    } catch (e) { alert("Erro ao buscar."); }
+    setLoading(false);
+  };
+
+  const paginated = files.slice((page - 1) * perPage, page * perPage);
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row gap-4 bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-xl border dark:border-gray-800">
+        <input className="flex-grow p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border-none outline-none focus:ring-2 focus:ring-red-500" placeholder="SKU ou nome do produto..." value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && search()} />
+        <button onClick={search} className="bg-red-600 hover:bg-red-700 text-white font-black px-10 py-4 rounded-2xl shadow-lg shadow-red-600/20">BUSCAR</button>
+      </div>
+
+      {loading && <div className="text-center py-20"><Loader2 className="animate-spin mx-auto text-red-600" size={48}/></div>}
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        {paginated.map((f, i) => <FileCard key={i} file={f} user={user} />)}
+      </div>
+
+      {files.length > perPage && (
+        <div className="flex justify-center gap-4 mt-10">
+          <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-4 py-2 border rounded-xl disabled:opacity-20 font-bold">Anterior</button>
+          <span className="py-2 text-xs font-black text-gray-400">PÁGINA {page} DE {Math.ceil(files.length / perPage)}</span>
+          <button disabled={page >= Math.ceil(files.length / perPage)} onClick={() => setPage(p => p + 1)} className="px-4 py-2 border rounded-xl disabled:opacity-20 font-bold">Próxima</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CarnesContent({ user }) {
+  const [path, setPath] = useState('Carnes');
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState('');
+
+  const load = async (p) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/list?path=${encodeURIComponent(p)}`, {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
+      const data = await res.json();
+      setItems(Array.isArray(data) ? data : []);
+      setPath(p);
+    } catch (e) { alert("Erro ao abrir pasta."); }
+    setLoading(false);
+  };
+
+  useEffect(() => { load('Carnes'); }, []);
+
+  const filtered = items.filter(i => i.ObjectName.toLowerCase().includes(filter.toLowerCase()));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide text-sm">
+        <Folder size={16} className="text-red-500"/>
+        {path.split('/').map((p, i, arr) => (
+          <React.Fragment key={i}>
+            <button className="font-bold hover:underline" onClick={() => load(arr.slice(0, i+1).join('/'))}>{p}</button>
+            {i < arr.length - 1 && <ChevronRight size={14} className="opacity-20"/>}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border dark:border-gray-800 shadow-xl overflow-hidden">
+        <div className="p-4 border-b dark:border-gray-800">
+          <input className="w-full p-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm border-none outline-none" placeholder="Filtrar nesta pasta (datas, anos)..." value={filter} onChange={e => setFilter(e.target.value)} />
+        </div>
+        {loading ? <div className="p-20 text-center text-gray-400">Carregando...</div> : (
+          <div className="divide-y dark:divide-gray-800">
+            {filtered.map((it, i) => (
+              <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition" onClick={() => it.IsDirectory && load(`${path}/${it.ObjectName}`)}>
+                <div className="flex items-center gap-3">
+                  {it.IsDirectory ? <Folder className="text-yellow-500" /> : <FileText className="text-blue-500" />}
+                  <span className="font-bold text-sm">{it.ObjectName}</span>
+                </div>
+                {!it.IsDirectory && <button onClick={(e) => { e.stopPropagation(); download(it.ObjectName, path, user); }} className="p-2 hover:bg-red-500 hover:text-white rounded-lg transition"><Download size={18}/></button>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UploadContent({ user }) {
+  const [file, setFile] = useState(null);
+  const [target, setTarget] = useState('Fprodutos');
+  const [up, setUp] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const handleUp = async (e) => {
+    e.preventDefault();
+    if (!file) return;
+    setUp(true);
+    const form = new FormData();
+    form.append('file', file);
+    form.append('path', `${target}/${file.name}`);
+    try {
+      const res = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${user.token}` },
+        body: form
+      });
+      if (res.ok) { setMsg('Sucesso!'); setFile(null); }
+      else setMsg('Erro no envio.');
+    } catch (e) { setMsg('Erro de conexão.'); }
+    setUp(false);
+  };
+
+  return (
+    <div className="max-w-xl mx-auto bg-white dark:bg-gray-900 p-10 rounded-[2.5rem] shadow-2xl border dark:border-gray-800">
+      <h2 className="text-2xl font-black mb-6 flex items-center gap-3"><Upload className="text-red-600"/> Enviar Arquivo</h2>
+      <form onSubmit={handleUp} className="space-y-6">
+        <div>
+          <label className="text-xs font-black uppercase text-gray-400 block mb-2 ml-1">Pasta de Destino</label>
+          <select className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border-none outline-none font-bold" value={target} onChange={e => setTarget(e.target.value)}>
+            <option value="Fprodutos">Fprodutos (Fotos)</option>
+            <option value="VideosProdutos/Videos YT">Vídeos YT</option>
+            <option value="VideosProdutos/Videos ML">Vídeos ML</option>
+          </select>
+        </div>
+        <div className="border-4 border-dashed dark:border-gray-800 p-10 rounded-3xl text-center hover:border-red-500 transition cursor-pointer relative">
+          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFile(e.target.files[0])} />
+          {file ? <p className="font-bold text-green-600">{file.name}</p> : <p className="text-gray-400">Arraste ou clique para selecionar</p>}
+        </div>
+        {msg && <p className="text-center font-bold text-red-500">{msg}</p>}
+        <button disabled={!file || up} className="w-full bg-red-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-red-600/20 active:scale-95 disabled:opacity-20">
+          {up ? 'ENVIANDO...' : 'REALIZAR UPLOAD'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function FileCard({ file, user }) {
+  const url = `${PUBLIC_CDN}/${file.fullPath.split('/').map(encodeURIComponent).join('/')}`;
+  const isVideo = ['mp4', 'mov'].includes(file.ObjectName.split('.').pop().toLowerCase());
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm border dark:border-gray-800 group hover:shadow-xl transition relative">
+      <div className="aspect-square bg-gray-100 dark:bg-gray-950 flex items-center justify-center relative overflow-hidden">
+        {isVideo ? <Film className="text-gray-400" size={32}/> : <img src={url} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" loading="lazy" />}
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+          <button onClick={() => window.open(url, '_blank')} className="p-2 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition"><ImageIcon size={18}/></button>
+          <button onClick={() => download(file.ObjectName, file.fullPath.split('/').slice(0,-1).join('/'), user)} className="p-2 bg-white text-black rounded-full hover:bg-red-600 hover:text-white transition"><Download size={18}/></button>
+        </div>
+      </div>
+      <p className="p-2 text-[10px] font-bold truncate dark:text-gray-400">{file.ObjectName}</p>
+    </div>
+  );
+}
+
+async function download(name, path, user) {
+  try {
+    const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path + '/' + name)}`, {
+      headers: { 'Authorization': `Bearer ${user.token}` }
+    });
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+  } catch (e) { alert("Falha no download."); }
+}
