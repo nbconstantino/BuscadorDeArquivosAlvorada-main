@@ -132,7 +132,7 @@
       const globalState = {
         search: { q: '', files: [], page: 1, view: 'grid', filter: 'all', subFilter: 'all', perPage: 15 },
         multi: { q: '', groups: [] },
-        carnes: { path: 'Carnes', items: [], filter: '' }
+        carnes: { path: 'Carnês', items: [], searchQuery: '', searchResults: [], isSearchMode: false }
       };
 
       // --- HELPERS ---
@@ -824,14 +824,20 @@
         const [path, setPath] = useState(globalState.carnes.path);
         const [items, setItems] = useState(globalState.carnes.items);
         const [loading, setLoading] = useState(false);
-        const [filter, setFilter] = useState(globalState.carnes.filter);
+        
+        // Novos estados para a Pesquisa Recursiva
+        const [searchQuery, setSearchQuery] = useState(globalState.carnes.searchQuery);
+        const [searchResults, setSearchResults] = useState(globalState.carnes.searchResults);
+        const [isSearchMode, setIsSearchMode] = useState(globalState.carnes.isSearchMode);
 
         useEffect(() => {
-          globalState.carnes = { path, items, filter };
-        }, [path, items, filter]);
+          globalState.carnes = { path, items, searchQuery, searchResults, isSearchMode };
+        }, [path, items, searchQuery, searchResults, isSearchMode]);
 
         const loadFolder = async (p) => {
           setLoading(true);
+          setIsSearchMode(false);
+          setSearchQuery('');
           try {
             const data = await fetchWithCache(`${API_BASE}/list?path=${encodeURIComponent(p)}`, user.token);
             setItems(Array.isArray(data) ? data : []);
@@ -841,10 +847,47 @@
         };
 
         useEffect(() => { 
-          if(user && items.length === 0) loadFolder(path); 
+          if(user && items.length === 0 && !isSearchMode) loadFolder(path); 
         }, [user]);
 
-        const filtered = items.filter(it => (it.ObjectName || '').toLowerCase().includes(filter.toLowerCase()));
+        // Função recursiva que navega pelas subpastas para encontrar arquivos
+        const searchRecursive = async (targetPath, term, accum) => {
+          try {
+            const data = await fetchWithCache(`${API_BASE}/list?path=${encodeURIComponent(targetPath)}`, user.token);
+            if (Array.isArray(data)) {
+              const dirs = [];
+              for (const item of data) {
+                if (item.IsDirectory) {
+                  dirs.push(item);
+                } else {
+                  if (item.ObjectName.toLowerCase().includes(term.toLowerCase())) {
+                    accum.push({ ...item, parentPath: targetPath }); // Salva a pasta pai onde foi encontrado
+                  }
+                }
+              }
+              // Se houver subpastas, busca dentro delas paralelamente
+              if (dirs.length > 0) {
+                await Promise.all(dirs.map(d => searchRecursive(`${targetPath}/${d.ObjectName}`, term, accum)));
+              }
+            }
+          } catch(e) {}
+        };
+
+        const handleSearch = async () => {
+          if (!searchQuery.trim()) {
+            setIsSearchMode(false);
+            return;
+          }
+          setLoading(true);
+          setIsSearchMode(true);
+          
+          await logAction('Pesquisa em Carnês', `Buscando "${searchQuery}" a partir de ${path}`, user.token);
+
+          const results = [];
+          await searchRecursive(path, searchQuery.trim(), results);
+          setSearchResults(results);
+          setLoading(false);
+        };
 
         return (
           <div className="space-y-4 fade-in">
@@ -853,7 +896,11 @@
                 <Icons.Folder />
                 {path.split('/').map((p, i, arr) => (
                   <Fragment key={i}>
-                    <button onClick={() => loadFolder(arr.slice(0, i+1).join('/'))} className="text-[10px] font-black uppercase hover:text-[#0e75d7] transition-all tracking-widest">{p}</button>
+                    <button onClick={() => {
+                      setIsSearchMode(false);
+                      setSearchQuery('');
+                      loadFolder(arr.slice(0, i+1).join('/'));
+                    }} className="text-[10px] font-black uppercase hover:text-[#0e75d7] transition-all tracking-widest">{p}</button>
                     {i < arr.length - 1 && <div className="opacity-30 text-[#0e75d7]"><Icons.ChevronRight /></div>}
                   </Fragment>
                 ))}
@@ -862,34 +909,55 @@
 
             <div className="bg-white dark:bg-[#161b22] rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden transition-all">
               <div className="p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20 flex flex-col sm:flex-row gap-4 justify-between items-center transition-colors">
-                 <div className="relative w-full sm:max-w-xs text-[#0e75d7]">
-                   <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50"><Icons.Search /></div>
-                   <input className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0d1117] dark:text-white text-sm outline-none border-none shadow-inner transition-colors" placeholder="Procurar nesta pasta..." value={filter} onChange={e => setFilter(e.target.value)} />
+                 <div className="flex w-full sm:max-w-md gap-2">
+                   <div className="relative flex-grow text-[#0e75d7]">
+                     <div className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50"><Icons.Search /></div>
+                     <input className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white dark:bg-[#0d1117] dark:text-white text-sm outline-none border-none shadow-inner transition-colors" placeholder="Buscar nesta pasta e subpastas..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                   </div>
+                   <button onClick={handleSearch} className="bg-[#0e75d7] hover:bg-[#0c64b8] text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-blue-600/20 transition-all uppercase text-[10px] tracking-widest">
+                     Buscar
+                   </button>
                  </div>
-                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{filtered.length} ficheiros encontrados</span>
+                 
+                 <div className="flex items-center gap-4">
+                   {isSearchMode && (
+                     <button onClick={() => { setIsSearchMode(false); setSearchQuery(''); }} className="text-red-500 font-black text-[10px] uppercase hover:underline">
+                        Cancelar Busca
+                     </button>
+                   )}
+                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                     {isSearchMode ? searchResults.length : items.length} {isSearchMode ? 'resultados' : 'itens'}
+                   </span>
+                 </div>
               </div>
-              {loading ? <div className="p-32 text-center text-gray-400 font-black animate-pulse uppercase tracking-widest">CARREGANDO...</div> : (
+              
+              {loading ? <div className="p-32 text-center text-[#0e75d7] font-black animate-pulse uppercase tracking-widest">BUSCANDO ARQUIVOS...</div> : (
                 <div className="divide-y border-gray-100 dark:divide-gray-800 max-h-[600px] overflow-y-auto custom-scroll transition-colors">
-                  {filtered.length === 0 && <div className="p-20 text-center text-gray-400 uppercase text-xs font-bold tracking-widest">A pasta está vazia.</div>}
-                  {filtered.map((it, i) => (
-                    <div key={i} className="p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group transition-all" onClick={() => it.IsDirectory && loadFolder(`${path}/${it.ObjectName}`)}>
-                      <div className="flex items-center gap-4">
-                        <div className={`p-4 rounded-2xl transition-all ${it.IsDirectory ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm group-hover:scale-105' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
-                          {it.IsDirectory ? <Icons.Folder /> : <Icons.FileText />}
+                  {isSearchMode && searchResults.length === 0 && <div className="p-20 text-center text-gray-400 uppercase text-xs font-bold tracking-widest">Nenhum resultado encontrado.</div>}
+                  {!isSearchMode && items.length === 0 && <div className="p-20 text-center text-gray-400 uppercase text-xs font-bold tracking-widest">A pasta está vazia.</div>}
+                  
+                  {(isSearchMode ? searchResults : items).map((it, i) => {
+                    const itemPath = isSearchMode ? it.parentPath : path;
+                    return (
+                      <div key={i} className="p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group transition-all" onClick={() => it.IsDirectory ? loadFolder(`${itemPath}/${it.ObjectName}`) : null}>
+                        <div className="flex items-center gap-4">
+                          <div className={`p-4 rounded-2xl transition-all ${it.IsDirectory ? 'bg-blue-50 dark:bg-blue-900/20 shadow-sm group-hover:scale-105' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                            {it.IsDirectory ? <Icons.Folder /> : <Icons.FileText />}
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-sm uppercase dark:text-gray-200 group-hover:text-[#0e75d7] transition-all tracking-tighter">{it.ObjectName}</p>
+                            {isSearchMode && <p className="text-[8px] font-bold text-[#0e75d7] uppercase tracking-widest mt-0.5 opacity-70">Em: {itemPath}</p>}
+                            {!it.IsDirectory && <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Documento • {(it.Length / 1024).toFixed(0)} KB</p>}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-extrabold text-sm uppercase dark:text-gray-200 group-hover:text-[#0e75d7] transition-all tracking-tighter">{it.ObjectName}</p>
-                          {!it.IsDirectory && <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Documento • {(it.Length / 1024).toFixed(0)} KB</p>}
-                        </div>
+                        {!it.IsDirectory && (
+                          <div className="flex gap-2">
+                            <button onClick={(e) => { e.stopPropagation(); downloadFile(it.ObjectName, itemPath, user); }} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl hover:bg-[#0e75d7] hover:text-white transition-all shadow-sm"><Icons.Download /></button>
+                          </div>
+                        )}
                       </div>
-                      {!it.IsDirectory && (
-                        <div className="flex gap-2">
-                          <button onClick={(e) => { e.stopPropagation(); window.open(`${PUBLIC_CDN}/${path}/${it.ObjectName}`, '_blank'); }} className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-[#0e75d7] transition-all"><Icons.Eye /></button>
-                          <button onClick={(e) => { e.stopPropagation(); downloadFile(it.ObjectName, path, user); }} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl hover:bg-[#0e75d7] hover:text-white transition-all shadow-sm"><Icons.Download /></button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
