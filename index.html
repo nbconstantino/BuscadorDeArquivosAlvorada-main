@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Painel Interno - Lojas Alvorada</title>
+  <link rel="icon" type="image/x-icon" href="https://lojasalvorada.b-cdn.net/Logos%20Loja/Incon/icon.ico" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -39,7 +40,7 @@
 
   <script type="text/babel">
     {
-      const { useState, useEffect, useMemo, Fragment } = React;
+      const { useState, useEffect, useMemo, Fragment, useRef } = React;
 
       // --- ÍCONES SVG INTERNOS ---
       const Icons = {
@@ -60,7 +61,12 @@
         Layers: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>,
         VideoVertical: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="7" y="2" width="10" height="20" rx="2"></rect></svg>,
         VideoHorizontal: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="7" width="20" height="10" rx="2"></rect></svg>,
-        Share: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        Share: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>,
+        Users: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>,
+        Edit: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
+        Trash: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+        Plus: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+        Activity: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
       };
 
       const API_BASE = 'https://bunny-proxy.onrender.com/api'; 
@@ -111,6 +117,17 @@
         });
       };
 
+      // --- SISTEMA DE LOGS DE ATIVIDADE ---
+      const logAction = async (action, details, token) => {
+        try {
+          await fetch(`${API_BASE}/logs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ action, details })
+          });
+        } catch(e) { console.error('Erro ao registrar log'); }
+      };
+
       // Esta variável preserva os estados quando o usuário troca de abas!
       const globalState = {
         search: { q: '', files: [], page: 1, view: 'grid', filter: 'all', subFilter: 'all', perPage: 15 },
@@ -121,10 +138,13 @@
       // --- HELPERS ---
       const formatMB = (bytes) => (bytes / (1024 * 1024)).toFixed(2);
       
-      const downloadFile = async (name, path, token) => {
+      const downloadFile = async (name, path, user) => {
         try {
+          // Registra o log do download
+          await logAction('Download', `Baixou o arquivo: ${name} da pasta ${path}`, user.token);
+
           const res = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path + '/' + name)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${user.token}` }
           });
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
@@ -166,20 +186,21 @@
 
         return (
           <div className="min-h-screen flex flex-col transition-colors duration-300 bg-gray-50 dark:bg-[#0b0e14] text-gray-900 dark:text-gray-100">
-            <header className="bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-gray-800 h-20 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-50 shadow-sm transition-colors">
+            <header className="bg-white dark:bg-[#161b22] border-b border-gray-200 dark:border-gray-800 h-20 lg:h-24 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-50 shadow-sm transition-colors">
               <div className="flex items-center gap-4 lg:gap-10">
-                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-8 lg:h-10 object-contain" />
+                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-12 lg:h-16 object-contain" />
                 <nav className="hidden lg:flex gap-2">
                   <TabBtn active={tab === 'search' || tab === 'multiSearch'} onClick={() => setTab('search')} icon={<Icons.Search />} label="Produtos" />
                   {user.role === 'admin' && <TabBtn active={tab === 'carnes'} onClick={() => setTab('carnes')} icon={<Icons.FileText />} label="Carnês" />}
                   {['admin', 'editor'].includes(user.role) && <TabBtn active={tab === 'upload'} onClick={() => setTab('upload')} icon={<Icons.Upload />} label="Enviar" />}
+                  {user.role === 'admin' && <TabBtn active={tab === 'admin'} onClick={() => setTab('admin')} icon={<Icons.Users />} label="Admin" />}
                 </nav>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setDarkMode(!darkMode)} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl transition hover:scale-110 active:scale-95 text-[#0e75d7]">
                   {darkMode ? <Icons.Sun /> : <Icons.Moon />}
                 </button>
-                <button onClick={() => { setUser(null); localStorage.removeItem('alvorada_session'); clearApiCache(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-950/30 rounded-2xl transition hover:scale-110 active:scale-95">
+                <button onClick={() => { setUser(null); localStorage.removeItem('alvorada_session'); clearApiCache(); }} className="p-3 text-red-500 bg-red-50 dark:bg-red-950/30 rounded-2xl transition hover:scale-110 active:scale-95" title="Sair do Sistema">
                   <Icons.LogOut />
                 </button>
               </div>
@@ -200,6 +221,11 @@
                   <Icons.Upload /> <span>Enviar</span>
                 </button>
               )}
+              {user.role === 'admin' && (
+                <button onClick={() => setTab('admin')} className={`flex-1 py-4 flex flex-col items-center gap-1 text-[10px] font-black uppercase transition-all min-w-[80px] ${tab === 'admin' ? 'text-[#0e75d7] border-b-2 border-[#0e75d7]' : 'text-gray-400'}`}>
+                  <Icons.Users /> <span>Admin</span>
+                </button>
+              )}
             </nav>
 
             <main className="flex-grow max-w-7xl mx-auto w-full p-4 lg:p-8 fade-in">
@@ -207,6 +233,7 @@
               {tab === 'multiSearch' && <MultiSearchTab user={user} onBack={() => setTab('search')} />}
               {tab === 'carnes' && <CarnesTab user={user} />}
               {tab === 'upload' && <UploadTab user={user} />}
+              {tab === 'admin' && <AdminTab user={user} />}
             </main>
             
             <footer className="p-6 text-center text-[10px] font-black uppercase text-gray-400 bg-white dark:bg-[#161b22] border-t border-gray-200 dark:border-gray-800 transition-colors">
@@ -262,7 +289,7 @@
           <div className="min-h-screen flex items-center justify-center p-4 bg-gray-100 dark:bg-[#0b0e14] transition-colors duration-300">
             <div className="w-full max-w-md bg-white dark:bg-[#161b22] p-8 rounded-[2.5rem] shadow-2xl border border-gray-200 dark:border-gray-800 fade-in">
               <div className="text-center mb-8">
-                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-14 mx-auto mb-4 object-contain transition-all" />
+                <img src={darkMode ? "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/LOGO%20BRANCA%20COM%20ESCRITA.png" : "https://lojasalvorada.b-cdn.net/Logos%20Loja/PNG/MARCA%20COLORIDA.png"} className="h-16 mx-auto mb-4 object-contain transition-all" />
                 <h1 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Painel Interno</h1>
               </div>
               <form onSubmit={submit} className="space-y-4">
@@ -325,6 +352,10 @@
         const performSearch = async () => {
           if (!q) return;
           setLoading(true);
+          
+          // REGISTRA O LOG DE PESQUISA
+          await logAction('Pesquisa', `Termo pesquisado: "${q}"`, user.token);
+
           let all = [];
           const paths = ['Fprodutos', 'VideosProdutos/Videos YT', 'VideosProdutos/Videos ML'];
           try {
@@ -371,7 +402,7 @@
         const downloadAll = async () => {
           if (!filtered.length || !confirm(`Baixar os ${filtered.length} arquivos encontrados?`)) return;
           for (const f of filtered) {
-            await downloadFile(f.ObjectName, f.fullPath.split('/').slice(0,-1).join('/'), user.token);
+            await downloadFile(f.ObjectName, f.fullPath.split('/').slice(0,-1).join('/'), user);
             await new Promise(r => setTimeout(r, 600));
           }
         };
@@ -463,6 +494,10 @@
           setLoading(true);
           
           const skus = q.trim().split(/\s+/).filter(s => s.trim().length > 0);
+          
+          // REGISTRA O LOG DE PESQUISA MÚLTIPLA
+          await logAction('Pesquisa Múltipla', `Códigos pesquisados: ${skus.join(', ')}`, user.token);
+
           let all = [];
           const paths = ['Fprodutos', 'VideosProdutos/Videos YT', 'VideosProdutos/Videos ML'];
           
@@ -538,7 +573,7 @@
 
         const downloadFirst = () => {
           if (firstFile) {
-            downloadFile(firstFile.ObjectName, firstFile.fullPath.split('/').slice(0,-1).join('/'), user.token);
+            downloadFile(firstFile.ObjectName, firstFile.fullPath.split('/').slice(0,-1).join('/'), user);
           }
         };
 
@@ -595,19 +630,28 @@
 
       // HELPER: Thumbnail bem simples sem botões em volta (usado na Busca Múltipla)
       function PreviewThumb({ file }) {
+        const videoRef = useRef(null);
         const ext = (file.ObjectName || '').split('.').pop().toLowerCase();
         const isImg = ['jpg','jpeg','png','webp','gif'].includes(ext);
         const isVid = ['mp4','mov','webm'].includes(ext);
         const url = `${PUBLIC_CDN}/${(file.fullPath || '').split('/').map(encodeURIComponent).join('/')}`;
         
+        // Hack para iOS carregar o primeiro frame do vídeo
+        useEffect(() => {
+          if (isVid && videoRef.current) {
+            videoRef.current.currentTime = 0.1;
+          }
+        }, [isVid]);
+
         if (isImg) return <img src={url} className="w-full h-full object-cover shadow-sm" loading="lazy" />;
-        if (isVid) return <video src={url} className="w-full h-full object-cover shadow-sm opacity-80" preload="metadata" />;
+        if (isVid) return <video ref={videoRef} src={url} className="w-full h-full object-cover shadow-sm opacity-80" preload="metadata" muted playsInline />;
         return <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-gray-800 text-gray-400"><Icons.FileText /></div>;
       }
 
       function FileCard({ file, view, user }) {
         const [showDetail, setShowDetail] = useState(false);
         const [isSharing, setIsSharing] = useState(false);
+        const videoRef = useRef(null);
         const ext = (file.ObjectName || '').split('.').pop().toLowerCase();
         const isImg = ['jpg','jpeg','png','webp','gif'].includes(ext);
         const isVid = ['mp4','mov','webm'].includes(ext);
@@ -618,6 +662,14 @@
         // Lógica de Detecção de Orientação
         const isVideosML = file.fullPath?.includes('Videos ML');
         const isVideosYT = file.fullPath?.includes('Videos YT');
+
+        // Hack para carregar miniaturas de vídeo no iOS Safari / Dispositivos Móveis
+        useEffect(() => {
+          if (isVid && videoRef.current) {
+             // Força o vídeo a avançar 0.1s para renderizar o frame, superando a tela preta no iOS
+             videoRef.current.currentTime = 0.1;
+          }
+        }, [isVid]);
 
         // LÓGICA DE COMPARTILHAMENTO NATIVO (WEB SHARE API)
         const handleShare = async (e) => {
@@ -631,6 +683,8 @@
 
           setIsSharing(true);
           try {
+            await logAction('Compartilhamento', `Arquivo: ${file.ObjectName}`, user.token); // LOG
+
             // Busca o arquivo real para compartilhar (não o link)
             const response = await fetch(url);
             const blob = await response.blob();
@@ -646,7 +700,6 @@
               alert('Seu dispositivo não suporta compartilhar este tipo de arquivo diretamente.');
             }
           } catch (error) {
-            // Cancelado pelo usuário ou erro (ignorar no console)
             console.log('Compartilhamento cancelado/falhou');
           }
           setIsSharing(false);
@@ -656,9 +709,12 @@
         const VideoThumbnail = () => (
           <div className="w-full h-full relative flex items-center justify-center bg-black overflow-hidden group-hover:scale-110 transition duration-700">
             <video 
+              ref={videoRef}
               src={url} 
               className="w-full h-full object-cover opacity-60"
               preload="metadata"
+              muted
+              playsInline
             />
             {/* Ícone de Play sobreposto */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -691,7 +747,7 @@
                   {isImg ? (
                     <img src={url} className="w-full h-full object-cover" />
                   ) : isVid ? (
-                    <video src={url} className="w-full h-full object-cover opacity-70" preload="metadata" />
+                    <video ref={videoRef} src={url} className="w-full h-full object-cover opacity-70" preload="metadata" muted playsInline />
                   ) : (
                     <div className="text-white opacity-40"><Icons.FileText /></div>
                   )}
@@ -713,7 +769,7 @@
                     {isSharing ? <div className="w-[18px] h-[18px] rounded-full border-2 border-current border-t-transparent animate-spin"></div> : <Icons.Share />}
                  </button>
                  <button onClick={() => window.open(url, '_blank')} className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-[#0e75d7] transition-all rounded-xl"><Icons.Eye /></button>
-                 <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-[#0e75d7] text-white rounded-xl shadow-lg shadow-blue-600/20 active:scale-90 transition-all"><Icons.Download /></button>
+                 <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user)} className="p-3 bg-[#0e75d7] text-white rounded-xl shadow-lg shadow-blue-600/20 active:scale-90 transition-all"><Icons.Download /></button>
               </div>
             </div>
           );
@@ -738,12 +794,12 @@
               
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3 backdrop-blur-[2px] z-10">
                 <button onClick={() => window.open(url, '_blank')} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110 shadow-lg"><Icons.Eye /></button>
-                <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110 shadow-lg"><Icons.Download /></button>
+                <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user)} className="p-3 bg-white text-black rounded-full hover:bg-[#0e75d7] transition-all transform hover:scale-110 shadow-lg"><Icons.Download /></button>
               </div>
             </div>
             <div className="p-3 text-center">
               <p className="text-[10px] font-black truncate dark:text-gray-300 uppercase tracking-tighter" title={file.ObjectName}>{file.ObjectName}</p>
-              <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user.token)} className="mt-2 w-full flex items-center justify-center gap-2 py-2 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl text-[9px] font-black uppercase transition-all active:scale-95 shadow-sm">
+              <button onClick={() => downloadFile(file.ObjectName, (file.fullPath || '').split('/').slice(0,-1).join('/'), user)} className="mt-2 w-full flex items-center justify-center gap-2 py-2 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl text-[9px] font-black uppercase transition-all active:scale-95 shadow-sm">
                  <Icons.Download /> <span>Baixar</span>
               </button>
             </div>
@@ -829,7 +885,7 @@
                       {!it.IsDirectory && (
                         <div className="flex gap-2">
                           <button onClick={(e) => { e.stopPropagation(); window.open(`${PUBLIC_CDN}/${path}/${it.ObjectName}`, '_blank'); }} className="p-3 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-[#0e75d7] transition-all"><Icons.Eye /></button>
-                          <button onClick={(e) => { e.stopPropagation(); downloadFile(it.ObjectName, path, user.token); }} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl hover:bg-[#0e75d7] hover:text-white transition-all shadow-sm"><Icons.Download /></button>
+                          <button onClick={(e) => { e.stopPropagation(); downloadFile(it.ObjectName, path, user); }} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-[#0e75d7] rounded-xl hover:bg-[#0e75d7] hover:text-white transition-all shadow-sm"><Icons.Download /></button>
                         </div>
                       )}
                     </div>
@@ -872,6 +928,8 @@
           }
           
           if (uploadedAny) {
+            // REGISTRA O LOG DE UPLOAD
+            await logAction('Upload', `Enviou arquivo(s) para a pasta: ${target}`, user.token);
             clearApiCache(); // Limpa o cache para os novos arquivos aparecerem na busca imediatamente
           }
           setUploading(false);
@@ -938,6 +996,200 @@
                 </button>
               </div>
             </div>
+          </div>
+        );
+      }
+
+      // --- NOVA TAB ADMIN (GERENCIAMENTO DE USUÁRIOS E LOGS) ---
+      function AdminTab({ user }) {
+        const [view, setView] = useState('users'); // 'users' | 'logs'
+        const [usersList, setUsersList] = useState({});
+        const [logsList, setLogsList] = useState([]);
+        const [loading, setLoading] = useState(true);
+
+        // Estados do Modal
+        const [isModalOpen, setIsModalOpen] = useState(false);
+        const [editUser, setEditUser] = useState(null); // null = criar novo
+        const [form, setForm] = useState({ username: '', name: '', password: '', role: 'viewer' });
+
+        const fetchData = async () => {
+          setLoading(true);
+          try {
+            const [resUsers, resLogs] = await Promise.all([
+              fetch(`${API_BASE}/users`, { headers: { 'Authorization': `Bearer ${user.token}` } }),
+              fetch(`${API_BASE}/logs`, { headers: { 'Authorization': `Bearer ${user.token}` } })
+            ]);
+            setUsersList(await resUsers.json());
+            setLogsList(await resLogs.json());
+          } catch(e) { console.error("Erro ao buscar dados admin"); }
+          setLoading(false);
+        };
+
+        useEffect(() => { fetchData(); }, []);
+
+        const handleSaveUser = async (e) => {
+          e.preventDefault();
+          const isEdit = !!editUser;
+          const url = isEdit ? `${API_BASE}/users/${editUser}` : `${API_BASE}/users`;
+          const method = isEdit ? 'PUT' : 'POST';
+
+          try {
+            const res = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
+              body: JSON.stringify(form)
+            });
+            if (res.ok) {
+              setIsModalOpen(false);
+              fetchData();
+            } else { alert("Erro ao salvar usuário. Verifique se o username já existe."); }
+          } catch(e) { alert("Erro no servidor"); }
+        };
+
+        const handleDeleteUser = async (username) => {
+          if (username === user.username) return alert("Você não pode excluir sua própria conta.");
+          if (!confirm(`Tem certeza que deseja remover o usuário: ${username}?`)) return;
+          try {
+            await fetch(`${API_BASE}/users/${username}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            fetchData();
+          } catch(e) {}
+        };
+
+        const openCreateModal = () => {
+          setEditUser(null);
+          setForm({ username: '', name: '', password: '', role: 'viewer' });
+          setIsModalOpen(true);
+        };
+
+        const openEditModal = (username, data) => {
+          setEditUser(username);
+          setForm({ username, name: data.name, password: data.password, role: data.role });
+          setIsModalOpen(true);
+        };
+
+        return (
+          <div className="space-y-6 fade-in max-w-5xl mx-auto">
+            {/* Header Admin */}
+            <div className="bg-white dark:bg-[#161b22] p-6 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row gap-4 justify-between items-center transition-all">
+              <div className="flex gap-4">
+                 <button onClick={() => setView('users')} className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === 'users' ? 'bg-[#0e75d7] text-white shadow-lg shadow-blue-600/20' : 'bg-gray-100 dark:bg-[#0d1117] text-gray-500 dark:text-gray-400 hover:bg-gray-200'}`}>
+                    <Icons.Users /> Equipe
+                 </button>
+                 <button onClick={() => setView('logs')} className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${view === 'logs' ? 'bg-[#0e75d7] text-white shadow-lg shadow-blue-600/20' : 'bg-gray-100 dark:bg-[#0d1117] text-gray-500 dark:text-gray-400 hover:bg-gray-200'}`}>
+                    <Icons.Activity /> Relatórios
+                 </button>
+              </div>
+              {view === 'users' && (
+                <button onClick={openCreateModal} className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-green-500/20 active:scale-95 transition-all uppercase text-xs tracking-widest flex items-center gap-2">
+                  <Icons.Plus /> Adicionar Usuário
+                </button>
+              )}
+            </div>
+
+            {loading ? <div className="p-20 text-center animate-pulse text-[#0e75d7] font-black tracking-widest uppercase">CARREGANDO SISTEMA...</div> : (
+              <>
+                {/* --- VIEW: USUÁRIOS --- */}
+                {view === 'users' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(usersList).map(([username, data]) => (
+                      <div key={username} className="bg-white dark:bg-[#161b22] p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-[#0e75d7]"></div>
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-lg font-black dark:text-white uppercase tracking-tighter">{data.name}</h3>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">@{username}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${data.role === 'admin' ? 'bg-red-50 text-red-600 dark:bg-red-900/30' : data.role === 'editor' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' : 'bg-gray-100 text-gray-600 dark:bg-gray-800'}`}>
+                             {data.role}
+                          </span>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-[#0d1117] p-3 rounded-xl mb-6 border border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase">Senha:</span>
+                          <span className="text-xs font-mono font-bold dark:text-gray-300 bg-white dark:bg-gray-800 px-2 py-1 rounded">{data.password}</span>
+                        </div>
+                        <div className="flex gap-2">
+                           <button onClick={() => openEditModal(username, data)} className="flex-1 bg-blue-50 dark:bg-blue-900/20 hover:bg-[#0e75d7] hover:text-white text-[#0e75d7] py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex justify-center items-center gap-1 transition-all"><Icons.Edit /> Editar</button>
+                           {username !== user.username && (
+                             <button onClick={() => handleDeleteUser(username)} className="bg-red-50 dark:bg-red-900/20 hover:bg-red-500 hover:text-white text-red-500 p-3 rounded-xl transition-all"><Icons.Trash /></button>
+                           )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* --- VIEW: LOGS --- */}
+                {view === 'logs' && (
+                  <div className="bg-white dark:bg-[#161b22] rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+                    <div className="max-h-[600px] overflow-y-auto custom-scroll p-2">
+                      {logsList.length === 0 ? <p className="p-10 text-center text-gray-400 text-xs font-bold uppercase tracking-widest">Nenhuma atividade registrada.</p> : (
+                        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {logsList.map((log) => (
+                            <div key={log.id} className="p-5 hover:bg-gray-50 dark:hover:bg-[#0d1117] transition-colors flex flex-col md:flex-row md:items-center gap-4">
+                              <div className="flex-shrink-0 w-[140px] text-[10px] font-bold text-gray-400 uppercase">
+                                {new Date(log.timestamp).toLocaleString('pt-BR')}
+                              </div>
+                              <div className="flex-shrink-0 w-[120px]">
+                                <span className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                  {log.name}
+                                </span>
+                              </div>
+                              <div className="flex-shrink-0 w-[100px]">
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${log.action === 'Download' ? 'text-green-500' : log.action === 'Upload' ? 'text-purple-500' : 'text-[#0e75d7]'}`}>
+                                  {log.action}
+                                </span>
+                              </div>
+                              <div className="flex-1 text-xs font-medium dark:text-gray-300 truncate" title={log.details}>
+                                {log.details}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* --- MODAL CRIAR/EDITAR USUÁRIO --- */}
+            {isModalOpen && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-in fade-in">
+                 <div className="bg-white dark:bg-[#161b22] w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative">
+                    <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 font-black text-xs uppercase">✕</button>
+                    <h2 className="text-[#0e75d7] font-black uppercase text-xl tracking-tighter mb-6">{editUser ? 'Editar Usuário' : 'Novo Usuário'}</h2>
+                    
+                    <form onSubmit={handleSaveUser} className="space-y-4">
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest block mb-1">Nome de Exibição</label>
+                         <input required value={form.name} onChange={e=>setForm({...form, name: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border border-gray-100 dark:border-gray-800 outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all text-sm font-bold" placeholder="Ex: Maria Souza" />
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest block mb-1">Login (Username)</label>
+                         <input required disabled={!!editUser} value={form.username} onChange={e=>setForm({...form, username: e.target.value.toLowerCase()})} className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border border-gray-100 dark:border-gray-800 outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all text-sm font-bold disabled:opacity-50" placeholder="Ex: maria.souza" />
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest block mb-1">Senha</label>
+                         <input required value={form.password} onChange={e=>setForm({...form, password: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border border-gray-100 dark:border-gray-800 outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all text-sm font-bold font-mono" placeholder="Defina uma senha" />
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest block mb-1">Nível de Permissão</label>
+                         <select value={form.role} onChange={e=>setForm({...form, role: e.target.value})} className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-[#0d1117] dark:text-white border border-gray-100 dark:border-gray-800 outline-none focus:ring-2 focus:ring-[#0e75d7] transition-all text-sm font-bold">
+                           <option value="viewer">Visualizador (Apenas Busca)</option>
+                           <option value="editor">Editor (Busca + Envio de Mídia)</option>
+                           <option value="admin">Administrador (Acesso Total)</option>
+                         </select>
+                      </div>
+                      <button className="w-full bg-[#0e75d7] hover:bg-[#0c64b8] text-white font-black py-4 rounded-2xl transition shadow-xl shadow-blue-600/20 active:scale-95 uppercase tracking-widest text-xs mt-4">
+                        Salvar Informações
+                      </button>
+                    </form>
+                 </div>
+              </div>
+            )}
           </div>
         );
       }
